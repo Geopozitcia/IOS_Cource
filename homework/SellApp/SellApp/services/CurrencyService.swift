@@ -1,17 +1,30 @@
 // Generates currencies list. Computing differnces beetwen couple values.
 
-
 import Foundation
+
+enum CurrencyType {
+    case fiat
+    case crypto
+    case all
+}
 
 final class CurrencyService {
 
     static let shared = CurrencyService() // singleton object
 
     private(set) var currencies: [String] = []
+    private(set) var fiatCurrencies: [String] = []
+    private(set) var cryptoCurrencies: [String] = []
     private var rates: [String: Double] = [:]
 
+    // known fiat currencies
+    private let knownFiats: Set<String> = ["USD", "EUR", "RUB", "GBP", "JPY", "CNY", "CHF", "AUD", "CAD"]
+
     private init() {
-        currencies = generateCurrencies(count: 120)
+        let generated = generateCurrencies(count: 120)
+        currencies = generated
+        fiatCurrencies = generated.filter { knownFiats.contains($0) }
+        cryptoCurrencies = generated.filter { !knownFiats.contains($0) }
         refreshRates()
     }
 
@@ -20,11 +33,22 @@ final class CurrencyService {
         return rates[key] ?? 0.0
     }
 
+    func currencies(for type: CurrencyType) -> [String] {
+        switch type {
+        case .all:
+            return currencies
+        case .fiat:
+            return fiatCurrencies
+        case .crypto:
+            return cryptoCurrencies
+        }
+    }
+
     func refreshRates() {
         for from in currencies {
             for to in currencies where to != from {
                 let key = "\(from)-\(to)"
-                rates[key] = Double.random(in: 0.0001...100.0) 
+                rates[key] = Double.random(in: 0.0001...100.0)
             }
         }
     }
@@ -34,7 +58,7 @@ private extension CurrencyService {
 
     func generateCurrencies(count: Int) -> [String] {
         let letters = Array("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
-        var result: Set<String> = ["USD", "BTC", "ETH", "EUR", "RUB"]
+        var result: Set<String> = ["USD", "BTC", "ETH", "EUR", "RUB", "GBP", "JPY", "CNY"]
 
         while result.count < count {
             let length = Int.random(in: 3...5)

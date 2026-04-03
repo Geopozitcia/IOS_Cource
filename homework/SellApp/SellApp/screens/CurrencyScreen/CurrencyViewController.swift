@@ -5,9 +5,9 @@ final class CurrencyViewController: UIViewController {
     private enum Constants {
         static let padding: CGFloat = 16
         static let buttonHeight: CGFloat = 60
-        static let headerHeight: CGFloat = 160
         static let cellSize: CGFloat = 72
         static let cellSpacing: CGFloat = 8
+        static let filterHeight: CGFloat = 36
     }
 
     private let viewModel = CurrencyViewModel()
@@ -17,6 +17,15 @@ final class CurrencyViewController: UIViewController {
     private let arrowLabel = UILabel()
     private let rateLabel = UILabel()
     private let timerLabel = UILabel()
+
+    private let amountTextField = UITextField()
+    private let resultLabel = UILabel()
+
+    private let filterStack = UIStackView()
+    private let allFilterButton = UIButton(type: .system)
+    private let fiatFilterButton = UIButton(type: .system)
+    private let cryptoFilterButton = UIButton(type: .system)
+
     private let collectionView: UICollectionView = {
         let layout = UICollectionViewFlowLayout()
         layout.itemSize = CGSize(width: Constants.cellSize, height: Constants.cellSize)
@@ -50,7 +59,7 @@ final class CurrencyViewController: UIViewController {
 private extension CurrencyViewController {
 
     func setupSubviews() {
-        fromButton.setTitle("USD", for: .normal)
+        // currency pairs
         fromButton.titleLabel?.font = .systemFont(ofSize: 20, weight: .bold)
         fromButton.setTitleColor(.white, for: .normal)
         fromButton.backgroundColor = UIColor(red: 0.2, green: 0.2, blue: 0.2, alpha: 1)
@@ -58,12 +67,11 @@ private extension CurrencyViewController {
         fromButton.addTarget(self, action: #selector(fromTapped), for: .touchUpInside)
         fromButton.translatesAutoresizingMaskIntoConstraints = false
 
-        arrowLabel.text = "->"
+        arrowLabel.text = "→"
         arrowLabel.textColor = .systemGray
         arrowLabel.font = .systemFont(ofSize: 22)
         arrowLabel.translatesAutoresizingMaskIntoConstraints = false
 
-        toButton.setTitle("BTC", for: .normal)
         toButton.titleLabel?.font = .systemFont(ofSize: 20, weight: .bold)
         toButton.setTitleColor(.white, for: .normal)
         toButton.backgroundColor = UIColor(red: 0.2, green: 0.2, blue: 0.2, alpha: 1)
@@ -71,18 +79,54 @@ private extension CurrencyViewController {
         toButton.addTarget(self, action: #selector(toTapped), for: .touchUpInside)
         toButton.translatesAutoresizingMaskIntoConstraints = false
 
-        rateLabel.text = "Rate: ..."
         rateLabel.textColor = .systemGray
         rateLabel.font = .systemFont(ofSize: 14)
         rateLabel.textAlignment = .center
         rateLabel.translatesAutoresizingMaskIntoConstraints = false
 
-        timerLabel.text = "Update in: 5s"
         timerLabel.textColor = .systemGray
         timerLabel.font = .systemFont(ofSize: 13)
         timerLabel.textAlignment = .center
         timerLabel.translatesAutoresizingMaskIntoConstraints = false
 
+        // convertion
+        amountTextField.placeholder = "Enter amount"
+        amountTextField.keyboardType = .decimalPad
+        amountTextField.textColor = .white
+        amountTextField.backgroundColor = UIColor(red: 0.2, green: 0.2, blue: 0.2, alpha: 1)
+        amountTextField.layer.cornerRadius = 8
+        amountTextField.leftView = UIView(frame: CGRect(x: 0, y: 0, width: 10, height: 0))
+        amountTextField.leftViewMode = .always
+        amountTextField.attributedPlaceholder = NSAttributedString(
+            string: "Enter amount",
+            attributes: [.foregroundColor: UIColor.systemGray]
+        )
+        amountTextField.addTarget(self, action: #selector(amountChanged), for: .editingChanged)
+        amountTextField.translatesAutoresizingMaskIntoConstraints = false
+
+        resultLabel.textColor = .white
+        resultLabel.font = .systemFont(ofSize: 14)
+        resultLabel.textAlignment = .center
+        resultLabel.translatesAutoresizingMaskIntoConstraints = false
+
+        // filter butions
+        setupFilterButton(allFilterButton, title: "All")
+        setupFilterButton(fiatFilterButton, title: "Fiat")
+        setupFilterButton(cryptoFilterButton, title: "Crypto")
+
+        allFilterButton.addTarget(self, action: #selector(filterAllTapped), for: .touchUpInside)
+        fiatFilterButton.addTarget(self, action: #selector(filterFiatTapped), for: .touchUpInside)
+        cryptoFilterButton.addTarget(self, action: #selector(filterCryptoTapped), for: .touchUpInside)
+
+        filterStack.axis = .horizontal
+        filterStack.distribution = .fillEqually
+        filterStack.spacing = 8
+        filterStack.addArrangedSubview(allFilterButton)
+        filterStack.addArrangedSubview(fiatFilterButton)
+        filterStack.addArrangedSubview(cryptoFilterButton)
+        filterStack.translatesAutoresizingMaskIntoConstraints = false
+
+        // collection
         collectionView.backgroundColor = .clear
         collectionView.register(CurrencyCell.self, forCellWithReuseIdentifier: CurrencyCell.reuseId)
         collectionView.dataSource = self
@@ -94,13 +138,26 @@ private extension CurrencyViewController {
         view.addSubview(toButton)
         view.addSubview(rateLabel)
         view.addSubview(timerLabel)
+        view.addSubview(amountTextField)
+        view.addSubview(resultLabel)
+        view.addSubview(filterStack)
         view.addSubview(collectionView)
+    }
+
+    func setupFilterButton(_ button: UIButton, title: String) {
+        button.setTitle(title, for: .normal)
+        button.setTitleColor(.white, for: .normal)
+        button.backgroundColor = UIColor(red: 0.2, green: 0.2, blue: 0.2, alpha: 1)
+        button.layer.cornerRadius = 8
+        button.titleLabel?.font = .systemFont(ofSize: 14, weight: .medium)
+        button.translatesAutoresizingMaskIntoConstraints = false
     }
 
     func setupConstraints() {
         let safeArea = view.safeAreaLayoutGuide
 
         NSLayoutConstraint.activate([
+            // currency pairs
             fromButton.topAnchor.constraint(equalTo: safeArea.topAnchor, constant: Constants.padding),
             fromButton.leadingAnchor.constraint(equalTo: safeArea.leadingAnchor, constant: Constants.padding),
             fromButton.heightAnchor.constraint(equalToConstant: Constants.buttonHeight),
@@ -122,7 +179,24 @@ private extension CurrencyViewController {
             timerLabel.leadingAnchor.constraint(equalTo: safeArea.leadingAnchor, constant: Constants.padding),
             timerLabel.trailingAnchor.constraint(equalTo: safeArea.trailingAnchor, constant: -Constants.padding),
 
-            collectionView.topAnchor.constraint(equalTo: timerLabel.bottomAnchor, constant: Constants.padding),
+            // convertion
+            amountTextField.topAnchor.constraint(equalTo: timerLabel.bottomAnchor, constant: Constants.padding),
+            amountTextField.leadingAnchor.constraint(equalTo: safeArea.leadingAnchor, constant: Constants.padding),
+            amountTextField.trailingAnchor.constraint(equalTo: safeArea.trailingAnchor, constant: -Constants.padding),
+            amountTextField.heightAnchor.constraint(equalToConstant: 40),
+
+            resultLabel.topAnchor.constraint(equalTo: amountTextField.bottomAnchor, constant: 6),
+            resultLabel.leadingAnchor.constraint(equalTo: safeArea.leadingAnchor, constant: Constants.padding),
+            resultLabel.trailingAnchor.constraint(equalTo: safeArea.trailingAnchor, constant: -Constants.padding),
+
+            // filter
+            filterStack.topAnchor.constraint(equalTo: resultLabel.bottomAnchor, constant: Constants.padding),
+            filterStack.leadingAnchor.constraint(equalTo: safeArea.leadingAnchor, constant: Constants.padding),
+            filterStack.trailingAnchor.constraint(equalTo: safeArea.trailingAnchor, constant: -Constants.padding),
+            filterStack.heightAnchor.constraint(equalToConstant: Constants.filterHeight),
+
+            // collection
+            collectionView.topAnchor.constraint(equalTo: filterStack.bottomAnchor),
             collectionView.leadingAnchor.constraint(equalTo: safeArea.leadingAnchor),
             collectionView.trailingAnchor.constraint(equalTo: safeArea.trailingAnchor),
             collectionView.bottomAnchor.constraint(equalTo: safeArea.bottomAnchor)
@@ -143,6 +217,12 @@ private extension CurrencyViewController {
         rateLabel.text = "Rate: \(viewModel.rateText)"
         timerLabel.text = "Update in: \(viewModel.secondsUntilRefresh)s"
 
+        if viewModel.inputAmount > 0 {
+            resultLabel.text = "= \(viewModel.convertedAmount) \(viewModel.toCurrency)"
+        } else {
+            resultLabel.text = ""
+        }
+
         if viewModel.selectedSlot == 0 {
             fromButton.layer.borderWidth = 2
             fromButton.layer.borderColor = UIColor.systemBlue.cgColor
@@ -152,6 +232,17 @@ private extension CurrencyViewController {
             toButton.layer.borderColor = UIColor.systemBlue.cgColor
             fromButton.layer.borderWidth = 0
         }
+
+        // active highlight
+        allFilterButton.backgroundColor = viewModel.selectedFilter == .all
+            ? .systemBlue
+            : UIColor(red: 0.2, green: 0.2, blue: 0.2, alpha: 1)
+        fiatFilterButton.backgroundColor = viewModel.selectedFilter == .fiat
+            ? .systemBlue
+            : UIColor(red: 0.2, green: 0.2, blue: 0.2, alpha: 1)
+        cryptoFilterButton.backgroundColor = viewModel.selectedFilter == .crypto
+            ? .systemBlue
+            : UIColor(red: 0.2, green: 0.2, blue: 0.2, alpha: 1)
 
         collectionView.reloadData()
     }
@@ -167,6 +258,22 @@ private extension CurrencyViewController {
 
     @objc func toTapped() {
         viewModel.selectSlot(1)
+    }
+
+    @objc func filterAllTapped() {
+        viewModel.selectFilter(.all)
+    }
+
+    @objc func filterFiatTapped() {
+        viewModel.selectFilter(.fiat)
+    }
+
+    @objc func filterCryptoTapped() {
+        viewModel.selectFilter(.crypto)
+    }
+
+    @objc func amountChanged() {
+        viewModel.updateInputAmount(amountTextField.text ?? "")
     }
 }
 

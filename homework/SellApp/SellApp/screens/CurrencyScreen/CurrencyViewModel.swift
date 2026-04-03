@@ -15,11 +15,13 @@ final class CurrencyViewModel {
     private(set) var toCurrency: String = "BTC"
     private(set) var selectedSlot: Int = 0
     private(set) var secondsUntilRefresh: Int = Constants.refreshInterval
+    private(set) var selectedFilter: CurrencyType = .all // save currency filter
+    private(set) var inputAmount: Double = 0.0
 
     private var timer: Timer?
 
     var currencies: [String] {
-        return service.currencies
+        return service.currencies(for: selectedFilter)
     }
 
     var currentRate: Double {
@@ -28,6 +30,11 @@ final class CurrencyViewModel {
 
     var rateText: String {
         return String(format: "%.6f", currentRate)
+    }
+
+    var convertedAmount: String {
+        let result = inputAmount * currentRate
+        return String(format: "%.6f", result)
     }
 
     func start() {
@@ -59,6 +66,16 @@ final class CurrencyViewModel {
 
     func isDisabled(_ currency: String) -> Bool {
         return selectedSlot == 0 ? currency == toCurrency : currency == fromCurrency
+    }
+
+    func selectFilter(_ filter: CurrencyType) { // all, crypro or just normal (not scam) money  
+        selectedFilter = filter
+        onUpdate?()
+    }
+
+    func updateInputAmount(_ text: String) {
+        inputAmount = Double(text) ?? 0.0
+        onUpdate?()
     }
 }
 
