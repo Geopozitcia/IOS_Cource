@@ -7,7 +7,7 @@ final class CurrencyCell: UICollectionViewCell {
 
     static let reuseId = "CurrencyCell"
 
-    private enum Constants {
+    private enum Constants { // no hardcode :)
         static let cornerRadius: CGFloat = 10
         static let fontSize: CGFloat = 14
         static let padding: CGFloat = 8
@@ -35,7 +35,7 @@ final class CurrencyCell: UICollectionViewCell {
     func configure(with currency: String, isDisabled: Bool) {
         nameLabel.text = currency
 
-        if isDisabled {
+        if isDisabled { // disabled options have gray appear
             backgroundColor = UIColor.systemGray.withAlphaComponent(0.2)
             nameLabel.textColor = .systemGray
             layer.borderWidth = 0
