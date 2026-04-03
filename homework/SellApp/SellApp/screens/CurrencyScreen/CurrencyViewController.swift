@@ -288,7 +288,8 @@ extension CurrencyViewController: UICollectionViewDataSource {
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: CurrencyCell.reuseId, for: indexPath) as! CurrencyCell
         let currency = viewModel.currencies[indexPath.item]
-        cell.configure(with: currency, isDisabled: viewModel.isDisabled(currency))
+        let isSelected = currency == viewModel.fromCurrency || currency == viewModel.toCurrency
+        cell.configure(with: currency, isDisabled: viewModel.isDisabled(currency), isSelected: isSelected)
         return cell
     }
 }

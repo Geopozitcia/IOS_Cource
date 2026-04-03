@@ -32,14 +32,19 @@ final class CurrencyCell: UICollectionViewCell {
         super.init(coder: coder)
     }
 
-    func configure(with currency: String, isDisabled: Bool) {
+    func configure(with currency: String, isDisabled: Bool, isSelected: Bool = false) {
         nameLabel.text = currency
 
-        if isDisabled { // disabled options have gray appear
+        if isDisabled {
             backgroundColor = UIColor.systemGray.withAlphaComponent(0.2)
             nameLabel.textColor = .systemGray
             layer.borderWidth = 0
-        } else {
+        } else if isSelected {
+            backgroundColor = UIColor(red: 0.20, green: 0.20, blue: 0.20, alpha: 1)
+            nameLabel.textColor = .systemBlue
+            layer.borderWidth = 2
+            layer.borderColor = UIColor.systemBlue.cgColor
+        } else { // new
             backgroundColor = UIColor(red: 0.20, green: 0.20, blue: 0.20, alpha: 1)
             nameLabel.textColor = .white
             layer.borderWidth = 0
