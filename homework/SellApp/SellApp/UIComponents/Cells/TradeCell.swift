@@ -4,16 +4,25 @@ final class TradeCell: UITableViewCell {
 
     static let reuseId = "TradeCell"
 
+    private enum Constants {
+        static let cornerRadius: CGFloat = 8
+        static let fontSize: CGFloat = 15
+        static let incomeFontSize: CGFloat = 13
+        static let padding: CGFloat = 10
+        static let innerPadding: CGFloat = 6
+        static let incomeHeight: CGFloat = 32
+    }
+
     private let mainView: UIView = {
         let view = UIView()
-        view.layer.cornerRadius = 8
+        view.layer.cornerRadius = Constants.cornerRadius
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
 
     private let priceLabel: UILabel = {
         let label = UILabel()
-        label.font = .systemFont(ofSize: 15, weight: .semibold)
+        label.font = .systemFont(ofSize: Constants.fontSize, weight: .semibold)
         label.textColor = .white
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
@@ -21,7 +30,7 @@ final class TradeCell: UITableViewCell {
 
     private let actionLabel: UILabel = {
         let label = UILabel()
-        label.font = .systemFont(ofSize: 13, weight: .medium)
+        label.font = .systemFont(ofSize: Constants.fontSize - 2, weight: .medium)
         label.textColor = .white
         label.textAlignment = .right
         label.translatesAutoresizingMaskIntoConstraints = false
@@ -31,14 +40,14 @@ final class TradeCell: UITableViewCell {
     private let incomeView: UIView = {
         let view = UIView()
         view.backgroundColor = UIColor.white.withAlphaComponent(0.1)
-        view.layer.cornerRadius = 6
+        view.layer.cornerRadius = Constants.innerPadding
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
 
     private let incomeLabel: UILabel = {
         let label = UILabel()
-        label.font = .monospacedSystemFont(ofSize: 13, weight: .regular)
+        label.font = .monospacedSystemFont(ofSize: Constants.incomeFontSize, weight: .regular)
         label.textColor = .white
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
@@ -73,7 +82,7 @@ final class TradeCell: UITableViewCell {
 
         if let income = record.incomeDescription {
             incomeLabel.text = income
-            incomeViewHeightConstraint.constant = 32
+            incomeViewHeightConstraint.constant = Constants.incomeHeight
             incomeView.isHidden = false
         } else {
             incomeViewHeightConstraint.constant = 0
@@ -101,14 +110,14 @@ private extension TradeCell {
             mainView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
             mainView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
 
-            priceLabel.topAnchor.constraint(equalTo: mainView.topAnchor, constant: 10),
+            priceLabel.topAnchor.constraint(equalTo: mainView.topAnchor, constant: Constants.padding),
             priceLabel.leadingAnchor.constraint(equalTo: mainView.leadingAnchor, constant: 12),
 
             actionLabel.centerYAnchor.constraint(equalTo: priceLabel.centerYAnchor),
             actionLabel.trailingAnchor.constraint(equalTo: mainView.trailingAnchor, constant: -12),
 
-            incomeView.topAnchor.constraint(equalTo: priceLabel.bottomAnchor, constant: 6),
-            incomeView.bottomAnchor.constraint(equalTo: mainView.bottomAnchor, constant: -10),
+            incomeView.topAnchor.constraint(equalTo: priceLabel.bottomAnchor, constant: Constants.innerPadding),
+            incomeView.bottomAnchor.constraint(equalTo: mainView.bottomAnchor, constant: -Constants.padding),
             incomeView.leadingAnchor.constraint(equalTo: mainView.leadingAnchor, constant: 12),
             incomeView.trailingAnchor.constraint(equalTo: mainView.trailingAnchor, constant: -12),
             incomeViewHeightConstraint,

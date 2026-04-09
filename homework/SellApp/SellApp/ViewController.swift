@@ -1,6 +1,6 @@
 import UIKit
 
-class ViewController: UIViewController {
+final class ViewController: UIViewController {
 
     private let darkColor = UIColor(red: 0.12, green: 0.12, blue: 0.12, alpha: 1)
     private let cardColor = UIColor(red: 0.20, green: 0.20, blue: 0.20, alpha: 1)
@@ -22,10 +22,11 @@ class ViewController: UIViewController {
     private let emptyLabel = UILabel()
 
     private var trades: [TradeRecord] = []
+    private let bot = TradingBot()
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = darkColor
+        setupBackground()
         setupSubviews()
         setupConstraints()
     }
@@ -35,8 +36,33 @@ class ViewController: UIViewController {
 
 private extension ViewController {
 
+    func setupBackground() {
+        view.backgroundColor = darkColor
+    }
+
     func setupSubviews() {
-        // ImageView
+        setupImageView()
+        setupNameLabel()
+        setupPriceLabel()
+        setupOldPriceLabel()
+        setupContainerView()
+        setupRatingView()
+        setupRunButton()
+        setupTableView()
+        setupEmptyLabel()
+
+        view.addSubview(imageView)
+        view.addSubview(nameLabel)
+        view.addSubview(priceLabel)
+        view.addSubview(oldPriceLabel)
+        view.addSubview(containerView)
+        view.addSubview(ratingView)
+        view.addSubview(runButton)
+        view.addSubview(tableView)
+        view.addSubview(emptyLabel)
+    }
+
+    func setupImageView() {
         imageView.backgroundColor = UIColor(red: 0.18, green: 0.18, blue: 0.18, alpha: 1)
         imageView.contentMode = .center
         imageView.translatesAutoresizingMaskIntoConstraints = false
@@ -46,25 +72,29 @@ private extension ViewController {
         placeholderLabel.textColor = .systemGray
         placeholderLabel.translatesAutoresizingMaskIntoConstraints = false
         imageView.addSubview(placeholderLabel)
+
         NSLayoutConstraint.activate([
             placeholderLabel.centerXAnchor.constraint(equalTo: imageView.centerXAnchor),
             placeholderLabel.centerYAnchor.constraint(equalTo: imageView.centerYAnchor)
         ])
+    }
 
-        // Name label
+    func setupNameLabel() {
         nameLabel.text = "Some Product for sale, Type A, Black"
         nameLabel.numberOfLines = 2
         nameLabel.font = .systemFont(ofSize: 17, weight: .bold)
         nameLabel.textColor = .white
         nameLabel.translatesAutoresizingMaskIntoConstraints = false
+    }
 
-        // Price label
+    func setupPriceLabel() {
         priceLabel.text = "12 990 $"
         priceLabel.font = .systemFont(ofSize: 22, weight: .bold)
         priceLabel.textColor = .white
         priceLabel.translatesAutoresizingMaskIntoConstraints = false
+    }
 
-        // Old price label
+    func setupOldPriceLabel() {
         let strikeAttr = NSAttributedString(string: "19 990 $", attributes: [
             .strikethroughStyle: NSUnderlineStyle.single.rawValue,
             .foregroundColor: UIColor.systemGray
@@ -72,8 +102,9 @@ private extension ViewController {
         oldPriceLabel.attributedText = strikeAttr
         oldPriceLabel.font = .systemFont(ofSize: 15)
         oldPriceLabel.translatesAutoresizingMaskIntoConstraints = false
+    }
 
-        // Container view
+    func setupContainerView() {
         containerView.backgroundColor = cardColor
         containerView.layer.cornerRadius = 10
         containerView.translatesAutoresizingMaskIntoConstraints = false
@@ -90,8 +121,9 @@ private extension ViewController {
 
         innerView.addSubview(deliveryLabel)
         containerView.addSubview(innerView)
+    }
 
-        // Rating view
+    func setupRatingView() {
         ratingView.backgroundColor = cardColor
         ratingView.layer.cornerRadius = 10
         ratingView.layer.borderWidth = 1
@@ -117,8 +149,9 @@ private extension ViewController {
         hStack.addArrangedSubview(reviewsLabel)
         hStack.translatesAutoresizingMaskIntoConstraints = false
         ratingView.addSubview(hStack)
+    }
 
-        // Run button
+    func setupRunButton() {
         runButton.setTitle("Run command", for: .normal)
         runButton.backgroundColor = .systemBlue
         runButton.setTitleColor(.white, for: .normal)
@@ -126,31 +159,23 @@ private extension ViewController {
         runButton.titleLabel?.font = .systemFont(ofSize: 16, weight: .semibold)
         runButton.addTarget(self, action: #selector(runTapped), for: .touchUpInside)
         runButton.translatesAutoresizingMaskIntoConstraints = false
+    }
 
-        // TableView
+    func setupTableView() {
         tableView.backgroundColor = .clear
         tableView.separatorStyle = .none
         tableView.register(TradeCell.self, forCellReuseIdentifier: TradeCell.reuseId)
         tableView.dataSource = self
         tableView.isHidden = true
         tableView.translatesAutoresizingMaskIntoConstraints = false
+    }
 
-        // Empty label
+    func setupEmptyLabel() {
         emptyLabel.text = "Нет данных"
         emptyLabel.textColor = .systemGray
         emptyLabel.font = .systemFont(ofSize: 18, weight: .medium)
         emptyLabel.textAlignment = .center
         emptyLabel.translatesAutoresizingMaskIntoConstraints = false
-
-        view.addSubview(imageView)
-        view.addSubview(nameLabel)
-        view.addSubview(priceLabel)
-        view.addSubview(oldPriceLabel)
-        view.addSubview(containerView)
-        view.addSubview(ratingView)
-        view.addSubview(runButton)
-        view.addSubview(tableView)
-        view.addSubview(emptyLabel)
     }
 
     func setupConstraints() {
@@ -217,7 +242,6 @@ private extension ViewController {
 private extension ViewController {
 
     @objc func runTapped() {
-        let bot = TradingBot()
         trades = bot.run()
         tableView.isHidden = false
         emptyLabel.isHidden = true
@@ -225,7 +249,7 @@ private extension ViewController {
     }
 }
 
-// MARK: - UITable
+// MARK: - UITableViewDataSource
 
 extension ViewController: UITableViewDataSource {
 
@@ -234,7 +258,9 @@ extension ViewController: UITableViewDataSource {
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: TradeCell.reuseId, for: indexPath) as! TradeCell
+        guard let cell = tableView.dequeueReusableCell(withIdentifier: TradeCell.reuseId, for: indexPath) as? TradeCell else {
+            return UITableViewCell()
+        }
         cell.configure(with: trades[indexPath.row])
         return cell
     }
