@@ -65,8 +65,15 @@ private extension ViewController {
             target: self,
             action: #selector(shuffleTapped)
         )
+        let chartButton = UIBarButtonItem( //
+            image: UIImage(systemName: "chart.bar"),
+            style: .plain,
+            target: self,
+            action: #selector(chartTapped)
+        )
         navigationItem.leftBarButtonItem = trashButton
         navigationItem.rightBarButtonItem = shuffleButton
+        navigationItem.rightBarButtonItems = [shuffleButton, chartButton]
     }
 
     func setupSubviews() {
@@ -328,6 +335,11 @@ private extension ViewController {
         tableView.isHidden = false
         emptyLabel.isHidden = true
         tableView.reloadData()
+    }
+    
+    @objc func chartTapped() {
+        let chartVC = ChartViewController()
+        navigationController?.pushViewController(chartVC, animated: true)
     }
 }
 
