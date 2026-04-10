@@ -12,7 +12,6 @@ final class ViewController: UIViewController {
     private let cardColor = UIColor(red: 0.20, green: 0.20, blue: 0.20, alpha: 1)
     private let innerColor = UIColor(red: 0.25, green: 0.25, blue: 0.25, alpha: 1)
 
-    // currency pair
     private let currencyPairButton = UIButton(type: .system)
 
     private let imageView = UIImageView()
@@ -268,12 +267,12 @@ private extension ViewController {
         ])
     }
 
-    // update text for currency pair
+    // update current pair text
     func updatePairButton() {
         currencyPairButton.setTitle("\(fromCurrency)  →  \(toCurrency)", for: .normal)
     }
 
-    // сбрасывает торговый экран в начальное состояние
+    // drop trade sceene to default
     func resetTradingState() {
         trades = []
         tableView.isHidden = true
@@ -287,7 +286,9 @@ private extension ViewController {
 private extension ViewController {
 
     @objc func pairButtonTapped() {
+        // создаём экран выбора валюты, передаём текущую пару и открываем через present
         let currencyVC = CurrencyViewController()
+        currencyVC.setInitialPair(from: fromCurrency, to: toCurrency)
         currencyVC.delegate = self
         present(currencyVC, animated: true)
     }

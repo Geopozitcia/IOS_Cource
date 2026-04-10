@@ -60,22 +60,17 @@ final class CurrencyViewController: UIViewController {
         return UICollectionView(frame: .zero, collectionViewLayout: layout)
     }()
 
+    // начальная пара передаётся снаружи до показа экрана
+    func setInitialPair(from: String, to: String) {
+        viewModel.setInitialPair(from: from, to: to)
+    }
+
     override func viewDidLoad() {
         super.viewDidLoad()
         setupBackground()
         setupSubviews()
         setupConstraints()
         setupViewModel()
-    }
-
-    override func viewWillDisappear(_ animated: Bool) {
-        super.viewWillDisappear(animated)
-        viewModel.stop()
-    }
-
-    override func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-        viewModel.start()
     }
 }
 
@@ -272,6 +267,9 @@ private extension CurrencyViewController {
         viewModel.onUpdate = {
             self.updateUI()
         }
+        viewModel.onCurrencyPairChanged = { [weak self] from, to in
+            self?.delegate?.didUpdateCurrencyPair(from: from, to: to)
+        }
         viewModel.start()
         updateUI()
     }
@@ -310,8 +308,6 @@ private extension CurrencyViewController {
         collectionView.isHidden = isEmpty
 
         collectionView.reloadData()
-
-        delegate?.didUpdateCurrencyPair(from: viewModel.fromCurrency, to: viewModel.toCurrency)
     }
 }
 

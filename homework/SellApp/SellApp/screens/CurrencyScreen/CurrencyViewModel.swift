@@ -8,6 +8,7 @@ final class CurrencyViewModel {
     }
 
     var onUpdate: (() -> Void)?
+    var onCurrencyPairChanged: ((String, String) -> Void)?
 
     private let service = CurrencyService.shared
 
@@ -46,7 +47,13 @@ final class CurrencyViewModel {
         return !currencies.isEmpty
     }
 
+    func setInitialPair(from: String, to: String) {
+        fromCurrency = from
+        toCurrency = to
+    }
+
     func start() {
+        guard timer == nil else { return }
         timer = Timer.scheduledTimer(withTimeInterval: Constants.timerInterval, repeats: true) { _ in
             self.timerTick()
         }
@@ -70,6 +77,7 @@ final class CurrencyViewModel {
             guard currency != fromCurrency else { return }
             toCurrency = currency
         }
+        onCurrencyPairChanged?(fromCurrency, toCurrency)
         onUpdate?()
     }
 
