@@ -33,6 +33,8 @@ final class ViewController: UIViewController {
 
     private var fromCurrency: String = "USD"
     private var toCurrency: String = "BTC"
+    private let chartVC = ChartViewController()
+
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -297,6 +299,7 @@ private extension ViewController {
         tableView.isHidden = true
         emptyLabel.isHidden = false
         tableView.reloadData()
+        chartVC.resetCandles()
     }
 }
 
@@ -335,10 +338,10 @@ private extension ViewController {
         tableView.isHidden = false
         emptyLabel.isHidden = true
         tableView.reloadData()
+        chartVC.loadCandles()
     }
     
     @objc func chartTapped() {
-        let chartVC = ChartViewController()
         navigationController?.pushViewController(chartVC, animated: true)
     }
 }

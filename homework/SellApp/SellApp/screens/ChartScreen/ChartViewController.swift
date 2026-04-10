@@ -10,7 +10,7 @@ final class ChartViewController: UIViewController {
         static let recommendationHeight: CGFloat = 60
     }
 
-    private var candles: [CandleModel] = CandleModel.generateList(count: 30)
+    private var candles: [CandleModel] = []
 
     private let scrollView = UIScrollView()
     private let candleStackView = UIStackView()
@@ -32,8 +32,23 @@ final class ChartViewController: UIViewController {
         setupBackground()
         setupSubviews()
         setupConstraints()
+    }
+    
+    func loadCandles() {
+        candles = CandleModel.generateList(count: 30)
+        candleStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
         populateCandles()
     }
+
+    func resetCandles() {
+        candles = []
+        candleStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        infoPlaceholder.isHidden = false
+        infoPanel.viewWithTag(100)?.isHidden = true
+        recommendationLabel.isHidden = true
+        recommendationPlaceholder.isHidden = false
+    }
+    
 }
 
 // MARK: - Setup

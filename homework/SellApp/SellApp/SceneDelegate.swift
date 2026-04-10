@@ -7,6 +7,8 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
         guard let windowScene = (scene as? UIWindowScene) else { return }
 
+        setupNavigationBarAppearance()
+
         window = UIWindow(windowScene: windowScene)
         window?.rootViewController = makeRootController()
         window?.makeKeyAndVisible()
@@ -15,13 +17,23 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
 private extension SceneDelegate {
 
+    func setupNavigationBarAppearance() {
+        let appearance = UINavigationBarAppearance()
+        appearance.configureWithOpaqueBackground()
+        appearance.backgroundColor = UIColor(red: 0.12, green: 0.12, blue: 0.12, alpha: 1)
+        appearance.titleTextAttributes = [.foregroundColor: UIColor.white]
+        UINavigationBar.appearance().standardAppearance = appearance
+        UINavigationBar.appearance().scrollEdgeAppearance = appearance
+        UINavigationBar.appearance().tintColor = .white
+    }
+
     func makeRootController() -> UIViewController {
-        let tabBar = UITabBarController() // gets both tabs via viewControllers
+        let tabBar = UITabBarController()
         tabBar.viewControllers = [makeTradeTab(), makeCurrencyTab()]
         return tabBar
     }
 
-    func makeTradeTab() -> UIViewController { // shelling ViewController in UINavigationController
+    func makeTradeTab() -> UIViewController {
         let tradeVC = ViewController()
         let nav = UINavigationController(rootViewController: tradeVC)
         tradeVC.title = "Trading"
