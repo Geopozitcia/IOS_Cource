@@ -2,9 +2,18 @@ import UIKit
 
 final class ViewController: UIViewController {
 
+    private enum Constants {
+        static let padding: CGFloat = 16
+        static let pairButtonHeight: CGFloat = 50
+        static let runButtonHeight: CGFloat = 48
+    }
+
     private let darkColor = UIColor(red: 0.12, green: 0.12, blue: 0.12, alpha: 1)
     private let cardColor = UIColor(red: 0.20, green: 0.20, blue: 0.20, alpha: 1)
     private let innerColor = UIColor(red: 0.25, green: 0.25, blue: 0.25, alpha: 1)
+
+    // currency pair
+    private let currencyPairButton = UIButton(type: .system)
 
     private let imageView = UIImageView()
     private let nameLabel = UILabel()
@@ -24,11 +33,16 @@ final class ViewController: UIViewController {
     private var trades: [TradeRecord] = []
     private let bot = TradingBot()
 
+    // текущая валютная пара — по умолчанию USD и BTC
+    private var fromCurrency: String = "USD"
+    private var toCurrency: String = "BTC"
+
     override func viewDidLoad() {
         super.viewDidLoad()
         setupBackground()
         setupSubviews()
         setupConstraints()
+        updatePairButton()
     }
 }
 
@@ -41,6 +55,7 @@ private extension ViewController {
     }
 
     func setupSubviews() {
+        setupCurrencyPairButton()
         setupImageView()
         setupNameLabel()
         setupPriceLabel()
@@ -51,6 +66,7 @@ private extension ViewController {
         setupTableView()
         setupEmptyLabel()
 
+        view.addSubview(currencyPairButton)
         view.addSubview(imageView)
         view.addSubview(nameLabel)
         view.addSubview(priceLabel)
@@ -60,6 +76,16 @@ private extension ViewController {
         view.addSubview(runButton)
         view.addSubview(tableView)
         view.addSubview(emptyLabel)
+    }
+
+    func setupCurrencyPairButton() {
+        // кнопка показывает текущую пару и открывает экран выбора при нажатии
+        currencyPairButton.backgroundColor = cardColor
+        currencyPairButton.layer.cornerRadius = 10
+        currencyPairButton.titleLabel?.font = .systemFont(ofSize: 17, weight: .semibold)
+        currencyPairButton.setTitleColor(.white, for: .normal)
+        currencyPairButton.addTarget(self, action: #selector(pairButtonTapped), for: .touchUpInside)
+        currencyPairButton.translatesAutoresizingMaskIntoConstraints = false
     }
 
     func setupImageView() {
@@ -182,24 +208,30 @@ private extension ViewController {
         let safeArea = view.safeAreaLayoutGuide
 
         NSLayoutConstraint.activate([
-            imageView.topAnchor.constraint(equalTo: safeArea.topAnchor),
+            // кнопка пары — самый верх экрана
+            currencyPairButton.topAnchor.constraint(equalTo: safeArea.topAnchor, constant: Constants.padding),
+            currencyPairButton.leadingAnchor.constraint(equalTo: safeArea.leadingAnchor, constant: Constants.padding),
+            currencyPairButton.trailingAnchor.constraint(equalTo: safeArea.trailingAnchor, constant: -Constants.padding),
+            currencyPairButton.heightAnchor.constraint(equalToConstant: Constants.pairButtonHeight),
+
+            imageView.topAnchor.constraint(equalTo: currencyPairButton.bottomAnchor, constant: Constants.padding),
             imageView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             imageView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            imageView.heightAnchor.constraint(equalToConstant: 200),
+            imageView.heightAnchor.constraint(equalToConstant: 160),
 
-            nameLabel.topAnchor.constraint(equalTo: imageView.bottomAnchor, constant: 16),
-            nameLabel.leadingAnchor.constraint(equalTo: safeArea.leadingAnchor, constant: 16),
-            nameLabel.trailingAnchor.constraint(equalTo: safeArea.trailingAnchor, constant: -16),
+            nameLabel.topAnchor.constraint(equalTo: imageView.bottomAnchor, constant: Constants.padding),
+            nameLabel.leadingAnchor.constraint(equalTo: safeArea.leadingAnchor, constant: Constants.padding),
+            nameLabel.trailingAnchor.constraint(equalTo: safeArea.trailingAnchor, constant: -Constants.padding),
 
             priceLabel.topAnchor.constraint(equalTo: nameLabel.bottomAnchor, constant: 8),
-            priceLabel.leadingAnchor.constraint(equalTo: safeArea.leadingAnchor, constant: 16),
+            priceLabel.leadingAnchor.constraint(equalTo: safeArea.leadingAnchor, constant: Constants.padding),
 
             oldPriceLabel.centerYAnchor.constraint(equalTo: priceLabel.centerYAnchor),
             oldPriceLabel.leadingAnchor.constraint(equalTo: priceLabel.trailingAnchor, constant: 8),
 
             containerView.topAnchor.constraint(equalTo: priceLabel.bottomAnchor, constant: 12),
-            containerView.leadingAnchor.constraint(equalTo: safeArea.leadingAnchor, constant: 16),
-            containerView.trailingAnchor.constraint(equalTo: safeArea.trailingAnchor, constant: -16),
+            containerView.leadingAnchor.constraint(equalTo: safeArea.leadingAnchor, constant: Constants.padding),
+            containerView.trailingAnchor.constraint(equalTo: safeArea.trailingAnchor, constant: -Constants.padding),
             containerView.heightAnchor.constraint(equalToConstant: 56),
 
             innerView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 8),
@@ -213,8 +245,8 @@ private extension ViewController {
             deliveryLabel.trailingAnchor.constraint(equalTo: innerView.trailingAnchor),
 
             ratingView.topAnchor.constraint(equalTo: containerView.bottomAnchor, constant: 12),
-            ratingView.leadingAnchor.constraint(equalTo: safeArea.leadingAnchor, constant: 16),
-            ratingView.trailingAnchor.constraint(equalTo: safeArea.trailingAnchor, constant: -16),
+            ratingView.leadingAnchor.constraint(equalTo: safeArea.leadingAnchor, constant: Constants.padding),
+            ratingView.trailingAnchor.constraint(equalTo: safeArea.trailingAnchor, constant: -Constants.padding),
 
             hStack.topAnchor.constraint(equalTo: ratingView.topAnchor, constant: 12),
             hStack.bottomAnchor.constraint(equalTo: ratingView.bottomAnchor, constant: -12),
@@ -222,9 +254,9 @@ private extension ViewController {
             hStack.trailingAnchor.constraint(equalTo: ratingView.trailingAnchor, constant: -12),
 
             runButton.topAnchor.constraint(equalTo: ratingView.bottomAnchor, constant: 12),
-            runButton.leadingAnchor.constraint(equalTo: safeArea.leadingAnchor, constant: 16),
-            runButton.trailingAnchor.constraint(equalTo: safeArea.trailingAnchor, constant: -16),
-            runButton.heightAnchor.constraint(equalToConstant: 48),
+            runButton.leadingAnchor.constraint(equalTo: safeArea.leadingAnchor, constant: Constants.padding),
+            runButton.trailingAnchor.constraint(equalTo: safeArea.trailingAnchor, constant: -Constants.padding),
+            runButton.heightAnchor.constraint(equalToConstant: Constants.runButtonHeight),
 
             tableView.topAnchor.constraint(equalTo: runButton.bottomAnchor, constant: 12),
             tableView.leadingAnchor.constraint(equalTo: safeArea.leadingAnchor),
@@ -235,17 +267,50 @@ private extension ViewController {
             emptyLabel.topAnchor.constraint(equalTo: runButton.bottomAnchor, constant: 60)
         ])
     }
+
+    // update text for currency pair
+    func updatePairButton() {
+        currencyPairButton.setTitle("\(fromCurrency)  →  \(toCurrency)", for: .normal)
+    }
+
+    // сбрасывает торговый экран в начальное состояние
+    func resetTradingState() {
+        trades = []
+        tableView.isHidden = true
+        emptyLabel.isHidden = false
+        tableView.reloadData()
+    }
 }
 
 // MARK: - Actions
 
 private extension ViewController {
 
+    @objc func pairButtonTapped() {
+        let currencyVC = CurrencyViewController()
+        currencyVC.delegate = self
+        present(currencyVC, animated: true)
+    }
+
     @objc func runTapped() {
         trades = bot.run()
         tableView.isHidden = false
         emptyLabel.isHidden = true
         tableView.reloadData()
+    }
+}
+
+// MARK: - CurrencyViewControllerDelegate
+
+extension ViewController: CurrencyViewControllerDelegate {
+
+    // вызывается каждый раз когда пользователь меняет валюту на экране выбора
+    func didUpdateCurrencyPair(from: String, to: String) {
+        guard from != fromCurrency || to != toCurrency else { return }
+        fromCurrency = from
+        toCurrency = to
+        updatePairButton()
+        resetTradingState()
     }
 }
 

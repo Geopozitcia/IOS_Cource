@@ -1,5 +1,9 @@
 import UIKit
 
+protocol CurrencyViewControllerDelegate: AnyObject {
+    func didUpdateCurrencyPair(from: String, to: String)
+}
+
 final class CurrencyViewController: UIViewController {
 
     private enum Constants {
@@ -10,6 +14,8 @@ final class CurrencyViewController: UIViewController {
         static let filterHeight: CGFloat = 36
         static let favoritesViewHeight: CGFloat = 44
     }
+
+    weak var delegate: CurrencyViewControllerDelegate?
 
     private let viewModel = CurrencyViewModel()
 
@@ -56,7 +62,7 @@ final class CurrencyViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = UIColor(red: 0.12, green: 0.12, blue: 0.12, alpha: 1)
+        setupBackground()
         setupSubviews()
         setupConstraints()
         setupViewModel()
@@ -66,42 +72,86 @@ final class CurrencyViewController: UIViewController {
         super.viewWillDisappear(animated)
         viewModel.stop()
     }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        viewModel.start()
+    }
 }
 
 // MARK: - Setup
 
 private extension CurrencyViewController {
 
+    func setupBackground() {
+        view.backgroundColor = UIColor(red: 0.12, green: 0.12, blue: 0.12, alpha: 1)
+    }
+
     func setupSubviews() {
+        setupFromButton()
+        setupArrowLabel()
+        setupToButton()
+        setupRateLabel()
+        setupTimerLabel()
+        setupAmountTextField()
+        setupResultLabel()
+        setupFavoritesFilterView()
+        setupFilterButtons()
+        setupCollectionView()
+
+        view.addSubview(fromButton)
+        view.addSubview(arrowLabel)
+        view.addSubview(toButton)
+        view.addSubview(rateLabel)
+        view.addSubview(timerLabel)
+        view.addSubview(amountTextField)
+        view.addSubview(resultLabel)
+        view.addSubview(favoritesFilterView)
+        view.addSubview(filterStack)
+        view.addSubview(collectionView)
+        view.addSubview(emptyFavoritesLabel)
+    }
+
+    func setupFromButton() {
         fromButton.titleLabel?.font = .systemFont(ofSize: 20, weight: .bold)
         fromButton.setTitleColor(.white, for: .normal)
         fromButton.backgroundColor = UIColor(red: 0.2, green: 0.2, blue: 0.2, alpha: 1)
         fromButton.layer.cornerRadius = 10
         fromButton.addTarget(self, action: #selector(fromTapped), for: .touchUpInside)
         fromButton.translatesAutoresizingMaskIntoConstraints = false
+    }
 
+    func setupArrowLabel() {
         arrowLabel.text = "→"
         arrowLabel.textColor = .systemGray
         arrowLabel.font = .systemFont(ofSize: 22)
         arrowLabel.translatesAutoresizingMaskIntoConstraints = false
+    }
 
+    func setupToButton() {
         toButton.titleLabel?.font = .systemFont(ofSize: 20, weight: .bold)
         toButton.setTitleColor(.white, for: .normal)
         toButton.backgroundColor = UIColor(red: 0.2, green: 0.2, blue: 0.2, alpha: 1)
         toButton.layer.cornerRadius = 10
         toButton.addTarget(self, action: #selector(toTapped), for: .touchUpInside)
         toButton.translatesAutoresizingMaskIntoConstraints = false
+    }
 
+    func setupRateLabel() {
         rateLabel.textColor = .systemGray
         rateLabel.font = .systemFont(ofSize: 14)
         rateLabel.textAlignment = .center
         rateLabel.translatesAutoresizingMaskIntoConstraints = false
+    }
 
+    func setupTimerLabel() {
         timerLabel.textColor = .systemGray
         timerLabel.font = .systemFont(ofSize: 13)
         timerLabel.textAlignment = .center
         timerLabel.translatesAutoresizingMaskIntoConstraints = false
+    }
 
+    func setupAmountTextField() {
         amountTextField.placeholder = "Enter amount"
         amountTextField.keyboardType = .decimalPad
         amountTextField.textColor = .white
@@ -115,15 +165,21 @@ private extension CurrencyViewController {
         )
         amountTextField.addTarget(self, action: #selector(amountChanged), for: .editingChanged)
         amountTextField.translatesAutoresizingMaskIntoConstraints = false
+    }
 
+    func setupResultLabel() {
         resultLabel.textColor = .white
         resultLabel.font = .systemFont(ofSize: 14)
         resultLabel.textAlignment = .center
         resultLabel.translatesAutoresizingMaskIntoConstraints = false
+    }
 
+    func setupFavoritesFilterView() {
         favoritesFilterView.delegate = self
         favoritesFilterView.translatesAutoresizingMaskIntoConstraints = false
+    }
 
+    func setupFilterButtons() {
         setupFilterButton(allFilterButton, title: "All")
         setupFilterButton(fiatFilterButton, title: "Fiat")
         setupFilterButton(cryptoFilterButton, title: "Crypto")
@@ -139,24 +195,6 @@ private extension CurrencyViewController {
         filterStack.addArrangedSubview(fiatFilterButton)
         filterStack.addArrangedSubview(cryptoFilterButton)
         filterStack.translatesAutoresizingMaskIntoConstraints = false
-
-        collectionView.backgroundColor = .clear
-        collectionView.register(CurrencyCell.self, forCellWithReuseIdentifier: CurrencyCell.reuseId)
-        collectionView.dataSource = self
-        collectionView.delegate = self
-        collectionView.translatesAutoresizingMaskIntoConstraints = false
-
-        view.addSubview(fromButton)
-        view.addSubview(arrowLabel)
-        view.addSubview(toButton)
-        view.addSubview(rateLabel)
-        view.addSubview(timerLabel)
-        view.addSubview(amountTextField)
-        view.addSubview(resultLabel)
-        view.addSubview(favoritesFilterView)
-        view.addSubview(filterStack)
-        view.addSubview(collectionView)
-        view.addSubview(emptyFavoritesLabel)
     }
 
     func setupFilterButton(_ button: UIButton, title: String) {
@@ -166,6 +204,14 @@ private extension CurrencyViewController {
         button.layer.cornerRadius = 8
         button.titleLabel?.font = .systemFont(ofSize: 14, weight: .medium)
         button.translatesAutoresizingMaskIntoConstraints = false
+    }
+
+    func setupCollectionView() {
+        collectionView.backgroundColor = .clear
+        collectionView.register(CurrencyCell.self, forCellWithReuseIdentifier: CurrencyCell.reuseId)
+        collectionView.dataSource = self
+        collectionView.delegate = self
+        collectionView.translatesAutoresizingMaskIntoConstraints = false
     }
 
     func setupConstraints() {
@@ -264,6 +310,8 @@ private extension CurrencyViewController {
         collectionView.isHidden = isEmpty
 
         collectionView.reloadData()
+
+        delegate?.didUpdateCurrencyPair(from: viewModel.fromCurrency, to: viewModel.toCurrency)
     }
 }
 
@@ -323,7 +371,9 @@ extension CurrencyViewController: UICollectionViewDataSource {
     }
 
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: CurrencyCell.reuseId, for: indexPath) as! CurrencyCell
+        guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: CurrencyCell.reuseId, for: indexPath) as? CurrencyCell else {
+            return UICollectionViewCell()
+        }
         let currency = viewModel.currencies[indexPath.item]
         let isSelected = currency == viewModel.fromCurrency || currency == viewModel.toCurrency
         cell.configure(with: currency, isDisabled: viewModel.isDisabled(currency), isSelected: isSelected, isFavorite: viewModel.isFavorite(currency))
