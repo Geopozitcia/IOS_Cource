@@ -13,7 +13,6 @@ final class ViewController: UIViewController {
     private let innerColor = UIColor(red: 0.25, green: 0.25, blue: 0.25, alpha: 1)
 
     private let currencyPairButton = UIButton(type: .system)
-
     private let imageView = UIImageView()
     private let nameLabel = UILabel()
     private let priceLabel = UILabel()
@@ -32,7 +31,6 @@ final class ViewController: UIViewController {
     private var trades: [TradeRecord] = []
     private let bot = TradingBot()
 
-    // текущая валютная пара — по умолчанию USD и BTC
     private var fromCurrency: String = "USD"
     private var toCurrency: String = "BTC"
 
@@ -41,6 +39,7 @@ final class ViewController: UIViewController {
         setupBackground()
         setupSubviews()
         setupConstraints()
+        setupNavigationBar()
         updatePairButton()
     }
 }
@@ -51,6 +50,23 @@ private extension ViewController {
 
     func setupBackground() {
         view.backgroundColor = darkColor
+    }
+
+    func setupNavigationBar() {
+        let trashButton = UIBarButtonItem(
+            image: UIImage(systemName: "trash"),
+            style: .plain,
+            target: self,
+            action: #selector(trashTapped)
+        )
+        let shuffleButton = UIBarButtonItem(
+            image: UIImage(systemName: "shuffle"),
+            style: .plain,
+            target: self,
+            action: #selector(shuffleTapped)
+        )
+        navigationItem.leftBarButtonItem = trashButton
+        navigationItem.rightBarButtonItem = shuffleButton
     }
 
     func setupSubviews() {
@@ -78,7 +94,6 @@ private extension ViewController {
     }
 
     func setupCurrencyPairButton() {
-        // кнопка показывает текущую пару и открывает экран выбора при нажатии
         currencyPairButton.backgroundColor = cardColor
         currencyPairButton.layer.cornerRadius = 10
         currencyPairButton.titleLabel?.font = .systemFont(ofSize: 17, weight: .semibold)
@@ -196,7 +211,7 @@ private extension ViewController {
     }
 
     func setupEmptyLabel() {
-        emptyLabel.text = "Нет данных"
+        emptyLabel.text = "No data"
         emptyLabel.textColor = .systemGray
         emptyLabel.font = .systemFont(ofSize: 18, weight: .medium)
         emptyLabel.textAlignment = .center
@@ -207,7 +222,6 @@ private extension ViewController {
         let safeArea = view.safeAreaLayoutGuide
 
         NSLayoutConstraint.activate([
-            // кнопка пары — самый верх экрана
             currencyPairButton.topAnchor.constraint(equalTo: safeArea.topAnchor, constant: Constants.padding),
             currencyPairButton.leadingAnchor.constraint(equalTo: safeArea.leadingAnchor, constant: Constants.padding),
             currencyPairButton.trailingAnchor.constraint(equalTo: safeArea.trailingAnchor, constant: -Constants.padding),
@@ -267,12 +281,10 @@ private extension ViewController {
         ])
     }
 
-    // update current pair text
     func updatePairButton() {
         currencyPairButton.setTitle("\(fromCurrency)  →  \(toCurrency)", for: .normal)
     }
 
-    // drop trade sceene to default
     func resetTradingState() {
         trades = []
         tableView.isHidden = true
@@ -286,11 +298,29 @@ private extension ViewController {
 private extension ViewController {
 
     @objc func pairButtonTapped() {
-        // создаём экран выбора валюты, передаём текущую пару и открываем через present
-        let currencyVC = CurrencyViewController()
-        currencyVC.setInitialPair(from: fromCurrency, to: toCurrency)
-        currencyVC.delegate = self
-        present(currencyVC, animated: true)
+        let quickVC = QuickCurrencyViewController()
+        quickVC.setInitialPair(from: fromCurrency, to: toCurrency)
+        quickVC.delegate = self
+        let nav = UINavigationController(rootViewController: quickVC)
+        present(nav, animated: true)
+    }
+
+    @objc func trashTapped() {
+        resetTradingState()
+    }
+
+    @objc func shuffleTapped() {
+        let currencies = CurrencyService.shared.currencies
+        guard currencies.count >= 2 else { return }
+        let from = currencies.randomElement()!
+        var to = currencies.randomElement()!
+        while to == from {
+            to = currencies.randomElement()!
+        }
+        fromCurrency = from
+        toCurrency = to
+        updatePairButton()
+        resetTradingState()
     }
 
     @objc func runTapped() {
@@ -305,7 +335,6 @@ private extension ViewController {
 
 extension ViewController: CurrencyViewControllerDelegate {
 
-    // вызывается каждый раз когда пользователь меняет валюту на экране выбора
     func didUpdateCurrencyPair(from: String, to: String) {
         guard from != fromCurrency || to != toCurrency else { return }
         fromCurrency = from
