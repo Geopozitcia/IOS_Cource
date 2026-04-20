@@ -16,6 +16,7 @@ final class CurrencyCell: UICollectionViewCell {
         static let fontSize: CGFloat = 14
         static let padding: CGFloat = 8
         static let starSize: CGFloat = 20
+        static let borderWidth: CGFloat = 2
     }
 
     weak var delegate: CurrencyCellDelegate?
@@ -47,14 +48,23 @@ final class CurrencyCell: UICollectionViewCell {
         super.init(coder: coder)
     }
 
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        starButton.setImage(UIImage(systemName: "star"), for: .normal)
+        starButton.tintColor = .systemGray
+        layer.borderWidth = 0
+        nameLabel.textColor = .white
+        backgroundColor = UIColor(red: 0.20, green: 0.20, blue: 0.20, alpha: 1)
+    }
+
     func configure(with currency: String, isDisabled: Bool, isSelected: Bool = false, isFavorite: Bool = false) {
         self.currency = currency
         nameLabel.text = currency
 
-        let starImage = isFavorite
-            ? UIImage(systemName: "star.fill")
-            : UIImage(systemName: "star")
-        starButton.setImage(starImage, for: .normal)
+        starButton.setImage(
+            UIImage(systemName: isFavorite ? "star.fill" : "star"),
+            for: .normal
+        )
         starButton.tintColor = isFavorite ? .systemYellow : .systemGray
 
         if isDisabled {
@@ -64,7 +74,7 @@ final class CurrencyCell: UICollectionViewCell {
         } else if isSelected {
             backgroundColor = UIColor(red: 0.20, green: 0.20, blue: 0.20, alpha: 1)
             nameLabel.textColor = .systemBlue
-            layer.borderWidth = 2
+            layer.borderWidth = Constants.borderWidth
             layer.borderColor = UIColor.systemBlue.cgColor
         } else {
             backgroundColor = UIColor(red: 0.20, green: 0.20, blue: 0.20, alpha: 1)

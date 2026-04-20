@@ -34,7 +34,7 @@ private extension SceneDelegate {
     }
 
     func makeTradeTab() -> UIViewController {
-        let tradeVC = ViewController()
+        let tradeVC = TradeViewController()
         let nav = UINavigationController(rootViewController: tradeVC)
         tradeVC.title = "Trading"
         nav.tabBarItem = UITabBarItem(

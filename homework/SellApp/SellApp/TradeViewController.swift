@@ -1,16 +1,37 @@
 import UIKit
 
-final class ViewController: UIViewController {
+final class TradeViewController: UIViewController {
 
     private enum Constants {
         static let padding: CGFloat = 16
         static let pairButtonHeight: CGFloat = 50
+        static let pairButtonCornerRadius: CGFloat = 10
+        static let pairButtonFontSize: CGFloat = 17
         static let runButtonHeight: CGFloat = 48
+        static let runButtonCornerRadius: CGFloat = 12
+        static let runButtonFontSize: CGFloat = 16
+        static let runButtonTitle = "Run command"
+        static let imageViewHeight: CGFloat = 160
+        static let imageViewPlaceholder = "UIImageView"
+        static let productName = "Some Product for sale, Type A, Black"
+        static let productPrice = "12 990 $"
+        static let productOldPrice = "19 990 $"
+        static let deliveryText = "Delivery: tomorrow"
+        static let ratingText = "4.4 ★"
+        static let reviewsText = "1513 reviews"
+        static let emptyText = "No data"
+        static let containerHeight: CGFloat = 56
+        static let ratingFontSize: CGFloat = 15
+        static let emptyLabelTopOffset: CGFloat = 60
+        static let nameFontSize: CGFloat = 17
+        static let priceFontSize: CGFloat = 22
+        static let oldPriceFontSize: CGFloat = 15
     }
 
     private let darkColor = UIColor(red: 0.12, green: 0.12, blue: 0.12, alpha: 1)
     private let cardColor = UIColor(red: 0.20, green: 0.20, blue: 0.20, alpha: 1)
     private let innerColor = UIColor(red: 0.25, green: 0.25, blue: 0.25, alpha: 1)
+    private let imageViewColor = UIColor(red: 0.18, green: 0.18, blue: 0.18, alpha: 1)
 
     private let currencyPairButton = UIButton(type: .system)
     private let imageView = UIImageView()
@@ -26,15 +47,23 @@ final class ViewController: UIViewController {
     private let reviewsLabel = UILabel()
     private let runButton = UIButton(type: .system)
     private let tableView = UITableView()
-    private let emptyLabel = UILabel()
+
+    private let emptyLabel: UILabel = {
+        let label = UILabel()
+        label.text = Constants.emptyText
+        label.textColor = .systemGray
+        label.font = .systemFont(ofSize: 18, weight: .medium)
+        label.textAlignment = .center
+        label.translatesAutoresizingMaskIntoConstraints = false
+        return label
+    }()
 
     private var trades: [TradeRecord] = []
     private let bot = TradingBot()
+    private let chartVC = ChartViewController()
 
     private var fromCurrency: String = "USD"
     private var toCurrency: String = "BTC"
-    private let chartVC = ChartViewController()
-
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -48,7 +77,7 @@ final class ViewController: UIViewController {
 
 // MARK: - Setup
 
-private extension ViewController {
+private extension TradeViewController {
 
     func setupBackground() {
         view.backgroundColor = darkColor
@@ -67,14 +96,13 @@ private extension ViewController {
             target: self,
             action: #selector(shuffleTapped)
         )
-        let chartButton = UIBarButtonItem( //
+        let chartButton = UIBarButtonItem(
             image: UIImage(systemName: "chart.bar"),
             style: .plain,
             target: self,
             action: #selector(chartTapped)
         )
         navigationItem.leftBarButtonItem = trashButton
-        navigationItem.rightBarButtonItem = shuffleButton
         navigationItem.rightBarButtonItems = [shuffleButton, chartButton]
     }
 
@@ -88,7 +116,6 @@ private extension ViewController {
         setupRatingView()
         setupRunButton()
         setupTableView()
-        setupEmptyLabel()
 
         view.addSubview(currencyPairButton)
         view.addSubview(imageView)
@@ -104,20 +131,20 @@ private extension ViewController {
 
     func setupCurrencyPairButton() {
         currencyPairButton.backgroundColor = cardColor
-        currencyPairButton.layer.cornerRadius = 10
-        currencyPairButton.titleLabel?.font = .systemFont(ofSize: 17, weight: .semibold)
+        currencyPairButton.layer.cornerRadius = Constants.pairButtonCornerRadius
+        currencyPairButton.titleLabel?.font = .systemFont(ofSize: Constants.pairButtonFontSize, weight: .semibold)
         currencyPairButton.setTitleColor(.white, for: .normal)
         currencyPairButton.addTarget(self, action: #selector(pairButtonTapped), for: .touchUpInside)
         currencyPairButton.translatesAutoresizingMaskIntoConstraints = false
     }
 
     func setupImageView() {
-        imageView.backgroundColor = UIColor(red: 0.18, green: 0.18, blue: 0.18, alpha: 1)
+        imageView.backgroundColor = imageViewColor
         imageView.contentMode = .center
         imageView.translatesAutoresizingMaskIntoConstraints = false
 
         let placeholderLabel = UILabel()
-        placeholderLabel.text = "UIImageView"
+        placeholderLabel.text = Constants.imageViewPlaceholder
         placeholderLabel.textColor = .systemGray
         placeholderLabel.translatesAutoresizingMaskIntoConstraints = false
         imageView.addSubview(placeholderLabel)
@@ -129,42 +156,42 @@ private extension ViewController {
     }
 
     func setupNameLabel() {
-        nameLabel.text = "Some Product for sale, Type A, Black"
+        nameLabel.text = Constants.productName
         nameLabel.numberOfLines = 2
-        nameLabel.font = .systemFont(ofSize: 17, weight: .bold)
+        nameLabel.font = .systemFont(ofSize: Constants.nameFontSize, weight: .bold)
         nameLabel.textColor = .white
         nameLabel.translatesAutoresizingMaskIntoConstraints = false
     }
 
     func setupPriceLabel() {
-        priceLabel.text = "12 990 $"
-        priceLabel.font = .systemFont(ofSize: 22, weight: .bold)
+        priceLabel.text = Constants.productPrice
+        priceLabel.font = .systemFont(ofSize: Constants.priceFontSize, weight: .bold)
         priceLabel.textColor = .white
         priceLabel.translatesAutoresizingMaskIntoConstraints = false
     }
 
     func setupOldPriceLabel() {
-        let strikeAttr = NSAttributedString(string: "19 990 $", attributes: [
+        let strikeAttr = NSAttributedString(string: Constants.productOldPrice, attributes: [
             .strikethroughStyle: NSUnderlineStyle.single.rawValue,
             .foregroundColor: UIColor.systemGray
         ])
         oldPriceLabel.attributedText = strikeAttr
-        oldPriceLabel.font = .systemFont(ofSize: 15)
+        oldPriceLabel.font = .systemFont(ofSize: Constants.oldPriceFontSize)
         oldPriceLabel.translatesAutoresizingMaskIntoConstraints = false
     }
 
     func setupContainerView() {
         containerView.backgroundColor = cardColor
-        containerView.layer.cornerRadius = 10
+        containerView.layer.cornerRadius = Constants.pairButtonCornerRadius
         containerView.translatesAutoresizingMaskIntoConstraints = false
 
         innerView.backgroundColor = innerColor
         innerView.layer.cornerRadius = 8
         innerView.translatesAutoresizingMaskIntoConstraints = false
 
-        deliveryLabel.text = "Delivery: tomorrow"
+        deliveryLabel.text = Constants.deliveryText
         deliveryLabel.textAlignment = .center
-        deliveryLabel.font = .systemFont(ofSize: 14)
+        deliveryLabel.font = .systemFont(ofSize: Constants.oldPriceFontSize)
         deliveryLabel.textColor = .white
         deliveryLabel.translatesAutoresizingMaskIntoConstraints = false
 
@@ -174,19 +201,19 @@ private extension ViewController {
 
     func setupRatingView() {
         ratingView.backgroundColor = cardColor
-        ratingView.layer.cornerRadius = 10
+        ratingView.layer.cornerRadius = Constants.pairButtonCornerRadius
         ratingView.layer.borderWidth = 1
         ratingView.layer.borderColor = UIColor.systemGray.cgColor
         ratingView.translatesAutoresizingMaskIntoConstraints = false
 
-        ratingLabel.text = "4.4 ★"
-        ratingLabel.font = .systemFont(ofSize: 15, weight: .medium)
+        ratingLabel.text = Constants.ratingText
+        ratingLabel.font = .systemFont(ofSize: Constants.ratingFontSize, weight: .medium)
         ratingLabel.textColor = .white
         ratingLabel.textAlignment = .center
         ratingLabel.translatesAutoresizingMaskIntoConstraints = false
 
-        reviewsLabel.text = "1513 reviews"
-        reviewsLabel.font = .systemFont(ofSize: 15, weight: .medium)
+        reviewsLabel.text = Constants.reviewsText
+        reviewsLabel.font = .systemFont(ofSize: Constants.ratingFontSize, weight: .medium)
         reviewsLabel.textColor = .white
         reviewsLabel.textAlignment = .center
         reviewsLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -201,11 +228,11 @@ private extension ViewController {
     }
 
     func setupRunButton() {
-        runButton.setTitle("Run command", for: .normal)
+        runButton.setTitle(Constants.runButtonTitle, for: .normal)
         runButton.backgroundColor = .systemBlue
         runButton.setTitleColor(.white, for: .normal)
-        runButton.layer.cornerRadius = 12
-        runButton.titleLabel?.font = .systemFont(ofSize: 16, weight: .semibold)
+        runButton.layer.cornerRadius = Constants.runButtonCornerRadius
+        runButton.titleLabel?.font = .systemFont(ofSize: Constants.runButtonFontSize, weight: .semibold)
         runButton.addTarget(self, action: #selector(runTapped), for: .touchUpInside)
         runButton.translatesAutoresizingMaskIntoConstraints = false
     }
@@ -217,14 +244,6 @@ private extension ViewController {
         tableView.dataSource = self
         tableView.isHidden = true
         tableView.translatesAutoresizingMaskIntoConstraints = false
-    }
-
-    func setupEmptyLabel() {
-        emptyLabel.text = "No data"
-        emptyLabel.textColor = .systemGray
-        emptyLabel.font = .systemFont(ofSize: 18, weight: .medium)
-        emptyLabel.textAlignment = .center
-        emptyLabel.translatesAutoresizingMaskIntoConstraints = false
     }
 
     func setupConstraints() {
@@ -239,7 +258,7 @@ private extension ViewController {
             imageView.topAnchor.constraint(equalTo: currencyPairButton.bottomAnchor, constant: Constants.padding),
             imageView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             imageView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            imageView.heightAnchor.constraint(equalToConstant: 160),
+            imageView.heightAnchor.constraint(equalToConstant: Constants.imageViewHeight),
 
             nameLabel.topAnchor.constraint(equalTo: imageView.bottomAnchor, constant: Constants.padding),
             nameLabel.leadingAnchor.constraint(equalTo: safeArea.leadingAnchor, constant: Constants.padding),
@@ -254,7 +273,7 @@ private extension ViewController {
             containerView.topAnchor.constraint(equalTo: priceLabel.bottomAnchor, constant: 12),
             containerView.leadingAnchor.constraint(equalTo: safeArea.leadingAnchor, constant: Constants.padding),
             containerView.trailingAnchor.constraint(equalTo: safeArea.trailingAnchor, constant: -Constants.padding),
-            containerView.heightAnchor.constraint(equalToConstant: 56),
+            containerView.heightAnchor.constraint(equalToConstant: Constants.containerHeight),
 
             innerView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 8),
             innerView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -8),
@@ -286,7 +305,7 @@ private extension ViewController {
             tableView.bottomAnchor.constraint(equalTo: safeArea.bottomAnchor),
 
             emptyLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            emptyLabel.topAnchor.constraint(equalTo: runButton.bottomAnchor, constant: 60)
+            emptyLabel.topAnchor.constraint(equalTo: runButton.bottomAnchor, constant: Constants.emptyLabelTopOffset)
         ])
     }
 
@@ -305,7 +324,7 @@ private extension ViewController {
 
 // MARK: - Actions
 
-private extension ViewController {
+private extension TradeViewController {
 
     @objc func pairButtonTapped() {
         let quickVC = QuickCurrencyViewController()
@@ -322,7 +341,7 @@ private extension ViewController {
     @objc func shuffleTapped() {
         let currencies = CurrencyService.shared.currencies
         guard currencies.count >= 2 else { return }
-        let from = currencies.randomElement()!
+        var from = currencies.randomElement()!
         var to = currencies.randomElement()!
         while to == from {
             to = currencies.randomElement()!
@@ -340,7 +359,7 @@ private extension ViewController {
         tableView.reloadData()
         chartVC.loadCandles()
     }
-    
+
     @objc func chartTapped() {
         navigationController?.pushViewController(chartVC, animated: true)
     }
@@ -348,7 +367,7 @@ private extension ViewController {
 
 // MARK: - CurrencyViewControllerDelegate
 
-extension ViewController: CurrencyViewControllerDelegate {
+extension TradeViewController: CurrencyViewControllerDelegate {
 
     func didUpdateCurrencyPair(from: String, to: String) {
         guard from != fromCurrency || to != toCurrency else { return }
@@ -361,7 +380,7 @@ extension ViewController: CurrencyViewControllerDelegate {
 
 // MARK: - UITableViewDataSource
 
-extension ViewController: UITableViewDataSource {
+extension TradeViewController: UITableViewDataSource {
 
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return trades.count

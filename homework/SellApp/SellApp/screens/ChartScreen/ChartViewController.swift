@@ -8,13 +8,28 @@ final class ChartViewController: UIViewController {
         static let candleHeight: CGFloat = 160
         static let infoPanelHeight: CGFloat = 100
         static let recommendationHeight: CGFloat = 60
+        static let switcherHeight: CGFloat = 36
+        static let lineChartHeight: CGFloat = 200
+        static let switcherCornerRadius: CGFloat = 8
+        static let switcherFontSize: CGFloat = 14
+        static let switcherBorderWidth: CGFloat = 1
     }
 
     private var candles: [CandleModel] = []
 
+    // switcher
+    private let switcherStack = UIStackView()
+    private let candleButton = UIButton(type: .system)
+    private let lineButton = UIButton(type: .system)
+
+    // candle chart
     private let scrollView = UIScrollView()
     private let candleStackView = UIStackView()
 
+    // line chart
+    private let lineChartView = LineChartView()
+
+    // info panel
     private let infoPanel = UIView()
     private let openLabel = UILabel()
     private let closeLabel = UILabel()
@@ -22,9 +37,12 @@ final class ChartViewController: UIViewController {
     private let lowLabel = UILabel()
     private let infoPlaceholder = UILabel()
 
+    // recommendation
     private let recommendationView = UIView()
     private let recommendationLabel = UILabel()
     private let recommendationPlaceholder = UILabel()
+
+    private var showingCandles: Bool = true
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -32,23 +50,23 @@ final class ChartViewController: UIViewController {
         setupBackground()
         setupSubviews()
         setupConstraints()
+        updateSwitcherUI()
     }
-    
+
     func loadCandles() {
         candles = CandleModel.generateList(count: 30)
         candleStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
         populateCandles()
+        lineChartView.configure(with: candles.map { $0.close })
     }
 
     func resetCandles() {
         candles = []
         candleStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
-        infoPlaceholder.isHidden = false
-        infoPanel.viewWithTag(100)?.isHidden = true
-        recommendationLabel.isHidden = true
-        recommendationPlaceholder.isHidden = false
+        lineChartView.configure(with: [])
+        resetInfoPanel()
+        resetRecommendation()
     }
-    
 }
 
 // MARK: - Setup
@@ -57,21 +75,44 @@ private extension ChartViewController {
 
     func setupBackground() {
         view.backgroundColor = UIColor(red: 0.12, green: 0.12, blue: 0.12, alpha: 1)
-        navigationController?.navigationBar.titleTextAttributes = [
-            .foregroundColor: UIColor.white
-        ]
-        navigationController?.navigationBar.barTintColor = UIColor(red: 0.12, green: 0.12, blue: 0.12, alpha: 1)
-        navigationController?.navigationBar.tintColor = .white
     }
 
     func setupSubviews() {
+        setupSwitcher()
         setupScrollView()
+        setupLineChart()
         setupInfoPanel()
         setupRecommendationView()
 
         view.addSubview(infoPanel)
         view.addSubview(recommendationView)
+        view.addSubview(switcherStack)
         view.addSubview(scrollView)
+        view.addSubview(lineChartView)
+    }
+
+    func setupSwitcher() {
+        setupSwitcherButton(candleButton, title: "Candles", action: #selector(candlesTapped))
+        setupSwitcherButton(lineButton, title: "Line", action: #selector(lineTapped))
+
+        switcherStack.axis = .horizontal
+        switcherStack.distribution = .fillEqually
+        switcherStack.spacing = 8
+        switcherStack.addArrangedSubview(candleButton)
+        switcherStack.addArrangedSubview(lineButton)
+        switcherStack.translatesAutoresizingMaskIntoConstraints = false
+    }
+
+    func setupSwitcherButton(_ button: UIButton, title: String, action: Selector) {
+        button.setTitle(title, for: .normal)
+        button.setTitleColor(.white, for: .normal)
+        button.backgroundColor = UIColor(red: 0.2, green: 0.2, blue: 0.2, alpha: 1)
+        button.layer.cornerRadius = Constants.switcherCornerRadius
+        button.layer.borderWidth = Constants.switcherBorderWidth
+        button.layer.borderColor = UIColor.systemGray.withAlphaComponent(0.3).cgColor
+        button.titleLabel?.font = .systemFont(ofSize: Constants.switcherFontSize, weight: .medium)
+        button.addTarget(self, action: action, for: .touchUpInside)
+        button.translatesAutoresizingMaskIntoConstraints = false
     }
 
     func setupScrollView() {
@@ -84,6 +125,11 @@ private extension ChartViewController {
         candleStackView.translatesAutoresizingMaskIntoConstraints = false
 
         scrollView.addSubview(candleStackView)
+    }
+
+    func setupLineChart() {
+        lineChartView.isHidden = true
+        lineChartView.translatesAutoresizingMaskIntoConstraints = false
     }
 
     func setupInfoPanel() {
@@ -155,7 +201,6 @@ private extension ChartViewController {
         NSLayoutConstraint.activate([
             recommendationPlaceholder.centerXAnchor.constraint(equalTo: recommendationView.centerXAnchor),
             recommendationPlaceholder.centerYAnchor.constraint(equalTo: recommendationView.centerYAnchor),
-
             recommendationLabel.centerXAnchor.constraint(equalTo: recommendationView.centerXAnchor),
             recommendationLabel.centerYAnchor.constraint(equalTo: recommendationView.centerYAnchor)
         ])
@@ -175,7 +220,12 @@ private extension ChartViewController {
             recommendationView.trailingAnchor.constraint(equalTo: safeArea.trailingAnchor, constant: -Constants.padding),
             recommendationView.heightAnchor.constraint(equalToConstant: Constants.recommendationHeight),
 
-            scrollView.topAnchor.constraint(equalTo: recommendationView.bottomAnchor, constant: Constants.padding),
+            switcherStack.topAnchor.constraint(equalTo: recommendationView.bottomAnchor, constant: Constants.padding),
+            switcherStack.leadingAnchor.constraint(equalTo: safeArea.leadingAnchor, constant: Constants.padding),
+            switcherStack.trailingAnchor.constraint(equalTo: safeArea.trailingAnchor, constant: -Constants.padding),
+            switcherStack.heightAnchor.constraint(equalToConstant: Constants.switcherHeight),
+
+            scrollView.topAnchor.constraint(equalTo: switcherStack.bottomAnchor, constant: Constants.padding),
             scrollView.leadingAnchor.constraint(equalTo: safeArea.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: safeArea.trailingAnchor),
             scrollView.bottomAnchor.constraint(equalTo: safeArea.bottomAnchor),
@@ -184,9 +234,19 @@ private extension ChartViewController {
             candleStackView.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor, constant: -Constants.padding),
             candleStackView.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor, constant: Constants.padding),
             candleStackView.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor, constant: -Constants.padding),
-            candleStackView.heightAnchor.constraint(equalToConstant: Constants.candleHeight)
+            candleStackView.heightAnchor.constraint(equalToConstant: Constants.candleHeight),
+
+            lineChartView.topAnchor.constraint(equalTo: switcherStack.bottomAnchor, constant: Constants.padding),
+            lineChartView.leadingAnchor.constraint(equalTo: safeArea.leadingAnchor, constant: Constants.padding),
+            lineChartView.trailingAnchor.constraint(equalTo: safeArea.trailingAnchor, constant: -Constants.padding),
+            lineChartView.heightAnchor.constraint(equalToConstant: Constants.lineChartHeight)
         ])
     }
+}
+
+// MARK: - Candles
+
+private extension ChartViewController {
 
     func populateCandles() {
         candles.forEach { model in
@@ -216,9 +276,7 @@ private extension ChartViewController {
         lowLabel.text = "Low\n\(String(format: "%.1f", model.low))"
 
         infoPlaceholder.isHidden = true
-        if let infoStack = infoPanel.viewWithTag(100) {
-            infoStack.isHidden = false
-        }
+        infoPanel.viewWithTag(100)?.isHidden = false
     }
 
     func showRecommendation(for model: CandleModel) {
@@ -237,5 +295,46 @@ private extension ChartViewController {
         recommendationLabel.text = result
         recommendationPlaceholder.isHidden = true
         recommendationLabel.isHidden = false
+    }
+
+    func resetInfoPanel() {
+        infoPlaceholder.isHidden = false
+        infoPanel.viewWithTag(100)?.isHidden = true
+    }
+
+    func resetRecommendation() {
+        recommendationLabel.isHidden = true
+        recommendationPlaceholder.isHidden = false
+    }
+}
+
+// MARK: - Switcher
+
+private extension ChartViewController {
+
+    func updateSwitcherUI() {
+        candleButton.backgroundColor = showingCandles
+            ? .systemBlue
+            : UIColor(red: 0.2, green: 0.2, blue: 0.2, alpha: 1)
+        lineButton.backgroundColor = showingCandles
+            ? UIColor(red: 0.2, green: 0.2, blue: 0.2, alpha: 1)
+            : .systemBlue
+
+        scrollView.isHidden = !showingCandles
+        lineChartView.isHidden = showingCandles
+
+        // hide unnecessary panels in line mode
+        infoPanel.isHidden = !showingCandles
+        recommendationView.isHidden = !showingCandles
+    }
+
+    @objc func candlesTapped() {
+        showingCandles = true
+        updateSwitcherUI()
+    }
+
+    @objc func lineTapped() {
+        showingCandles = false
+        updateSwitcherUI()
     }
 }
