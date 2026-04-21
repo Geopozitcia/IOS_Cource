@@ -24,6 +24,11 @@ final class LineChartView: UIView {
         static let priceTagHeight: CGFloat = 24
         static let priceTagCornerRadius: CGFloat = 6
         static let priceTagFontSize: CGFloat = 11
+        static let pulseRadius: CGFloat = 6
+        static let pulseMaxScale: CGFloat = 3.5
+        static let pulseFromOpacity: Float = 0.7
+        static let pulseDuration: TimeInterval = 1.2
+        static let pulseKey = "pulse"
     }
 
     private let lineLayer = CAShapeLayer()
@@ -31,6 +36,7 @@ final class LineChartView: UIView {
     private let gridLayer = CAShapeLayer()
     private let dotLayer = CAShapeLayer()
     private let selectedDotLayer = CAShapeLayer()
+    private let pulseLayer = CAShapeLayer()
 
     private var prices: [Double] = []
     private var selectedIndex: Int? = nil
@@ -113,6 +119,10 @@ private extension LineChartView {
         dotLayer.strokeColor = UIColor.clear.cgColor
         layer.addSublayer(dotLayer)
 
+        pulseLayer.fillColor = UIColor.systemBlue.withAlphaComponent(0.6).cgColor
+        pulseLayer.strokeColor = UIColor.clear.cgColor
+        layer.insertSublayer(pulseLayer, below: dotLayer)
+
         selectedDotLayer.fillColor = UIColor.white.cgColor
         selectedDotLayer.strokeColor = UIColor.systemBlue.cgColor
         selectedDotLayer.lineWidth = 2
@@ -157,6 +167,7 @@ private extension LineChartView {
         drawGrid()
         drawChart()
         drawDots()
+        drawPulse()
         drawSelectedDot()
     }
 
@@ -265,6 +276,42 @@ private extension LineChartView {
         }
 
         dotLayer.path = dotsPath.cgPath
+    }
+
+    func drawPulse() {
+        guard !prices.isEmpty else {
+            pulseLayer.path = nil
+            pulseLayer.removeAllAnimations()
+            return
+        }
+
+        let minPrice = prices.min() ?? 0
+        let maxPrice = prices.max() ?? 0
+        let lastIndex = prices.count - 1
+        let x = pointX(at: lastIndex)
+        let y = pointY(for: prices[lastIndex], min: minPrice, max: maxPrice)
+        let r = Constants.pulseRadius
+
+        pulseLayer.position = CGPoint(x: x, y: y)
+        let rect = CGRect(x: -r, y: -r, width: r * 2, height: r * 2)
+        pulseLayer.path = UIBezierPath(ovalIn: rect).cgPath
+
+        let scaleAnim = CABasicAnimation(keyPath: "transform.scale")
+        scaleAnim.fromValue = 1.0
+        scaleAnim.toValue = Constants.pulseMaxScale
+
+        let opacityAnim = CABasicAnimation(keyPath: "opacity")
+        opacityAnim.fromValue = Constants.pulseFromOpacity
+        opacityAnim.toValue = 0.0
+
+        let group = CAAnimationGroup()
+        group.animations = [scaleAnim, opacityAnim]
+        group.duration = Constants.pulseDuration
+        group.repeatCount = .infinity
+        group.timingFunction = CAMediaTimingFunction(name: .easeOut)
+
+        pulseLayer.removeAllAnimations()
+        pulseLayer.add(group, forKey: Constants.pulseKey)
     }
 
     func drawSelectedDot() {

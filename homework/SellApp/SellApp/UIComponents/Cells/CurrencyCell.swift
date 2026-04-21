@@ -17,6 +17,11 @@ final class CurrencyCell: UICollectionViewCell {
         static let padding: CGFloat = 8
         static let starSize: CGFloat = 20
         static let borderWidth: CGFloat = 2
+        // animation
+        static let selectionScaleSmall: CGFloat = 0.88
+        static let selectionScaleDuration: TimeInterval = 0.12
+        static let selectionFlashDuration: TimeInterval = 0.15
+        static let selectionFadeDuration: TimeInterval = 0.3
     }
 
     weak var delegate: CurrencyCellDelegate?
@@ -81,6 +86,32 @@ final class CurrencyCell: UICollectionViewCell {
             nameLabel.textColor = .white
             layer.borderWidth = 0
         }
+    }
+    
+    func animateSelection() {
+        UIView.animate( // scaling
+            withDuration: Constants.selectionScaleDuration,
+            animations: {
+                self.transform = CGAffineTransform(scaleX: Constants.selectionScaleSmall, y: Constants.selectionScaleSmall)
+            },
+            completion: { _ in
+                UIView.animate(withDuration: Constants.selectionScaleDuration) {
+                    self.transform = .identity
+                }
+            }
+        )
+
+        UIView.animate( // flashing
+            withDuration: Constants.selectionFlashDuration,
+            animations: {
+                self.backgroundColor = UIColor.systemGreen.withAlphaComponent(0.5)
+            },
+            completion: { _ in
+                UIView.animate(withDuration: Constants.selectionFadeDuration) {
+                    self.backgroundColor = UIColor(red: 0.20, green: 0.20, blue: 0.20, alpha: 1)
+                }
+            }
+        )
     }
 }
 

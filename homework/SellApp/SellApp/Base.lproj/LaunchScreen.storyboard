@@ -21,13 +21,19 @@
                                 <rect key="frame" x="0.0" y="0.0" width="420" height="892"/>
                                 <color key="backgroundColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                             </imageView>
+                            <activityIndicatorView opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" animating="YES" style="large" translatesAutoresizingMaskIntoConstraints="NO" id="O8j-1P-ZwZ">
+                                <rect key="frame" x="191.66666666666666" y="747" width="37" height="37"/>
+                                <color key="color" red="0.90240234370000005" green="0.89072987749999999" blue="0.85571247910000003" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
+                            </activityIndicatorView>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="6Tk-OE-BBY"/>
                         <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                         <constraints>
                             <constraint firstItem="tXw-Zg-fxt" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="9es-Gi-RKK"/>
+                            <constraint firstItem="O8j-1P-ZwZ" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="Epr-T5-TPz"/>
                             <constraint firstItem="6Tk-OE-BBY" firstAttribute="bottom" secondItem="tXw-Zg-fxt" secondAttribute="bottom" id="NdE-lA-sKu"/>
                             <constraint firstAttribute="trailing" secondItem="tXw-Zg-fxt" secondAttribute="trailing" id="S4k-bT-8lu"/>
+                            <constraint firstItem="6Tk-OE-BBY" firstAttribute="bottom" secondItem="O8j-1P-ZwZ" secondAttribute="bottom" constant="60" id="UEe-xA-w1l"/>
                             <constraint firstItem="tXw-Zg-fxt" firstAttribute="bottom" secondItem="6Tk-OE-BBY" secondAttribute="bottom" constant="10" id="YGh-uj-ctl"/>
                             <constraint firstItem="tXw-Zg-fxt" firstAttribute="leading" secondItem="Ze5-6b-2t3" secondAttribute="leading" id="ceE-g8-OAh"/>
                             <constraint firstItem="tXw-Zg-fxt" firstAttribute="top" secondItem="Ze5-6b-2t3" secondAttribute="top" id="koY-o7-JLV"/>
