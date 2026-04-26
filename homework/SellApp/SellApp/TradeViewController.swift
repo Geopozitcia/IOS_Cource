@@ -59,7 +59,8 @@ final class TradeViewController: UIViewController {
     }()
 
     private var trades: [TradeRecord] = []
-    private let bot = TradingBot()
+    private lazy var wallet = Wallet(currencies: CurrencyService.shared.currencies)
+    private lazy var botManager = BotManager(wallet: wallet)
     private let chartVC = ChartViewController()
 
     private var fromCurrency: String = "USD"
@@ -107,27 +108,27 @@ private extension TradeViewController {
     }
 
     func setupSubviews() {
-        setupCurrencyPairButton()
-        setupImageView()
-        setupNameLabel()
-        setupPriceLabel()
-        setupOldPriceLabel()
-        setupContainerView()
-        setupRatingView()
-        setupRunButton()
-        setupTableView()
+            setupCurrencyPairButton()
+            setupImageView()
+            setupNameLabel()
+            setupPriceLabel()
+            setupOldPriceLabel()
+            setupContainerView()
+            setupRatingView()
+            setupRunButton()
+            setupTableView()
 
-        view.addSubview(currencyPairButton)
-        view.addSubview(imageView)
-        view.addSubview(nameLabel)
-        view.addSubview(priceLabel)
-        view.addSubview(oldPriceLabel)
-        view.addSubview(containerView)
-        view.addSubview(ratingView)
-        view.addSubview(runButton)
-        view.addSubview(tableView)
-        view.addSubview(emptyLabel)
-    }
+            view.addSubview(currencyPairButton)
+            view.addSubview(imageView)
+            view.addSubview(nameLabel)
+            view.addSubview(priceLabel)
+            view.addSubview(oldPriceLabel)
+            view.addSubview(containerView)
+            view.addSubview(ratingView)
+            view.addSubview(tableView)
+            view.addSubview(emptyLabel)
+            view.addSubview(runButton)
+        }
 
     func setupCurrencyPairButton() {
         currencyPairButton.backgroundColor = cardColor
@@ -353,11 +354,17 @@ private extension TradeViewController {
     }
 
     @objc func runTapped() {
-        trades = bot.run()
-        tableView.isHidden = false
-        emptyLabel.isHidden = true
-        tableView.reloadData()
-        chartVC.loadCandles()
+        runButton.isEnabled = false
+        botManager.setupBots() // 8
+        botManager.runSimulation { [weak self] newRecords in
+            guard let self = self else { return }
+            self.trades = newRecords
+            self.tableView.isHidden = false
+            self.emptyLabel.isHidden = true
+            self.tableView.reloadData()
+            self.chartVC.loadCandles()
+            self.runButton.isEnabled = true
+        }
     }
 
     @objc func chartTapped() {
