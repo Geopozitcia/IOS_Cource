@@ -1,5 +1,5 @@
 import Foundation
- 
+
 enum AppConfig {
     static let minOperationsPerDay: Int = 5
     static let maxOperationsPerDay: Int = 15

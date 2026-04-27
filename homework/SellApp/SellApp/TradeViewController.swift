@@ -11,7 +11,7 @@ final class TradeViewController: UIViewController {
         static let runButtonCornerRadius: CGFloat = 12
         static let runButtonFontSize: CGFloat = 16
         static let runButtonTitle = "Run command"
-        static let imageViewHeight: CGFloat = 160
+        static let imageViewHeight: CGFloat = 120
         static let imageViewPlaceholder = "UIImageView"
         static let productName = "Some Product for sale, Type A, Black"
         static let productPrice = "12 990 $"
@@ -22,7 +22,7 @@ final class TradeViewController: UIViewController {
         static let emptyText = "No data"
         static let containerHeight: CGFloat = 56
         static let ratingFontSize: CGFloat = 15
-        static let emptyLabelTopOffset: CGFloat = 60
+        static let emptyLabelTopOffset: CGFloat = 40
         static let nameFontSize: CGFloat = 17
         static let priceFontSize: CGFloat = 22
         static let oldPriceFontSize: CGFloat = 15
@@ -47,6 +47,7 @@ final class TradeViewController: UIViewController {
     private let reviewsLabel = UILabel()
     private let runButton = UIButton(type: .system)
     private let tableView = UITableView()
+    private let loadingIndicator = UIActivityIndicatorView(style: .medium)
 
     private let emptyLabel: UILabel = {
         let label = UILabel()
@@ -58,13 +59,14 @@ final class TradeViewController: UIViewController {
         return label
     }()
 
-    private var trades: [TradeRecord] = []
-    private lazy var wallet = Wallet(currencies: CurrencyService.shared.currencies)
-    private lazy var botManager = BotManager(wallet: wallet)
+    private var dayResults: [DayResult] = []
     private let chartVC = ChartViewController()
 
     private var fromCurrency: String = "USD"
     private var toCurrency: String = "BTC"
+
+    private var botManager: BotManager?
+    private var currentWallet: Wallet?
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -103,32 +105,41 @@ private extension TradeViewController {
             target: self,
             action: #selector(chartTapped)
         )
+        let walletButton = UIBarButtonItem(
+            image: UIImage(systemName: "wallet.pass"),
+            style: .plain,
+            target: self,
+            action: #selector(walletTapped)
+        )
         navigationItem.leftBarButtonItem = trashButton
         navigationItem.rightBarButtonItems = [shuffleButton, chartButton]
+        navigationItem.rightBarButtonItems = [shuffleButton, chartButton, walletButton]
     }
 
     func setupSubviews() {
-            setupCurrencyPairButton()
-            setupImageView()
-            setupNameLabel()
-            setupPriceLabel()
-            setupOldPriceLabel()
-            setupContainerView()
-            setupRatingView()
-            setupRunButton()
-            setupTableView()
+        setupCurrencyPairButton()
+        setupImageView()
+        setupNameLabel()
+        setupPriceLabel()
+        setupOldPriceLabel()
+        setupContainerView()
+        setupRatingView()
+        setupRunButton()
+        setupTableView()
+        setupLoadingIndicator()
 
-            view.addSubview(currencyPairButton)
-            view.addSubview(imageView)
-            view.addSubview(nameLabel)
-            view.addSubview(priceLabel)
-            view.addSubview(oldPriceLabel)
-            view.addSubview(containerView)
-            view.addSubview(ratingView)
-            view.addSubview(tableView)
-            view.addSubview(emptyLabel)
-            view.addSubview(runButton)
-        }
+        view.addSubview(currencyPairButton)
+        view.addSubview(imageView)
+        view.addSubview(nameLabel)
+        view.addSubview(priceLabel)
+        view.addSubview(oldPriceLabel)
+        view.addSubview(containerView)
+        view.addSubview(ratingView)
+        view.addSubview(runButton)
+        view.addSubview(tableView)
+        view.addSubview(emptyLabel)
+        view.addSubview(loadingIndicator)
+    }
 
     func setupCurrencyPairButton() {
         currencyPairButton.backgroundColor = cardColor
@@ -241,10 +252,16 @@ private extension TradeViewController {
     func setupTableView() {
         tableView.backgroundColor = .clear
         tableView.separatorStyle = .none
-        tableView.register(TradeCell.self, forCellReuseIdentifier: TradeCell.reuseId)
+        tableView.register(DayResultCell.self, forCellReuseIdentifier: DayResultCell.reuseId)
         tableView.dataSource = self
         tableView.isHidden = true
         tableView.translatesAutoresizingMaskIntoConstraints = false
+    }
+
+    func setupLoadingIndicator() {
+        loadingIndicator.color = .white
+        loadingIndicator.hidesWhenStopped = true
+        loadingIndicator.translatesAutoresizingMaskIntoConstraints = false
     }
 
     func setupConstraints() {
@@ -306,7 +323,10 @@ private extension TradeViewController {
             tableView.bottomAnchor.constraint(equalTo: safeArea.bottomAnchor),
 
             emptyLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            emptyLabel.topAnchor.constraint(equalTo: runButton.bottomAnchor, constant: Constants.emptyLabelTopOffset)
+            emptyLabel.topAnchor.constraint(equalTo: runButton.bottomAnchor, constant: Constants.emptyLabelTopOffset),
+
+            loadingIndicator.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            loadingIndicator.topAnchor.constraint(equalTo: runButton.bottomAnchor, constant: Constants.emptyLabelTopOffset)
         ])
     }
 
@@ -315,11 +335,22 @@ private extension TradeViewController {
     }
 
     func resetTradingState() {
-        trades = []
+        dayResults = []
         tableView.isHidden = true
         emptyLabel.isHidden = false
         tableView.reloadData()
         chartVC.resetCandles()
+    }
+
+    func makeBotManager() -> BotManager {
+        let wallet = Wallet(currencies: [fromCurrency, toCurrency])
+        currentWallet = wallet
+        let bots = [
+            TradingBot(name: "BotAlpha", fromCurrency: fromCurrency, toCurrency: toCurrency),
+            TradingBot(name: "BotBeta", fromCurrency: fromCurrency, toCurrency: toCurrency),
+            TradingBot(name: "BotGamma", fromCurrency: fromCurrency, toCurrency: toCurrency)
+        ]
+        return BotManager(bots: bots, wallet: wallet)
     }
 }
 
@@ -342,7 +373,7 @@ private extension TradeViewController {
     @objc func shuffleTapped() {
         let currencies = CurrencyService.shared.currencies
         guard currencies.count >= 2 else { return }
-        var from = currencies.randomElement()!
+        let from = currencies.randomElement()!
         var to = currencies.randomElement()!
         while to == from {
             to = currencies.randomElement()!
@@ -355,20 +386,32 @@ private extension TradeViewController {
 
     @objc func runTapped() {
         runButton.isEnabled = false
-        botManager.setupBots() // 8
-        botManager.runSimulation { [weak self] newRecords in
+        emptyLabel.isHidden = true
+        tableView.isHidden = true
+        loadingIndicator.startAnimating()
+
+        let manager = makeBotManager()
+        botManager = manager
+
+        manager.runAll { [weak self] results in
             guard let self = self else { return }
-            self.trades = newRecords
+            self.dayResults = results
+            self.loadingIndicator.stopAnimating()
             self.tableView.isHidden = false
-            self.emptyLabel.isHidden = true
             self.tableView.reloadData()
-            self.chartVC.loadCandles()
             self.runButton.isEnabled = true
+            self.chartVC.loadCandles()
         }
     }
 
     @objc func chartTapped() {
         navigationController?.pushViewController(chartVC, animated: true)
+    }
+    
+    @objc func walletTapped() {
+        guard let wallet = currentWallet else { return }
+        let walletVC = WalletViewController(wallet: wallet)
+        present(walletVC, animated: true)
     }
 }
 
@@ -390,14 +433,14 @@ extension TradeViewController: CurrencyViewControllerDelegate {
 extension TradeViewController: UITableViewDataSource {
 
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return trades.count
+        return dayResults.count
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        guard let cell = tableView.dequeueReusableCell(withIdentifier: TradeCell.reuseId, for: indexPath) as? TradeCell else {
+        guard let cell = tableView.dequeueReusableCell(withIdentifier: DayResultCell.reuseId, for: indexPath) as? DayResultCell else {
             return UITableViewCell()
         }
-        cell.configure(with: trades[indexPath.row])
+        cell.configure(with: dayResults[indexPath.row])
         return cell
     }
 }
