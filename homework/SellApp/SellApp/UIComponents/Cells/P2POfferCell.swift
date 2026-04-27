@@ -11,6 +11,7 @@ final class P2POfferCell: UITableViewCell {
         static let nameFontSize: CGFloat = 15
         static let rateFontSize: CGFloat = 17
         static let detailFontSize: CGFloat = 12
+        static let verticalMargin: CGFloat = 4
     }
 
     private let containerView: UIView = {
@@ -21,7 +22,7 @@ final class P2POfferCell: UITableViewCell {
         return view
     }()
 
-    private let sellerLabel: UILabel = {
+    private let sellerNameLabel: UILabel = {
         let label = UILabel()
         label.font = .systemFont(ofSize: Constants.nameFontSize, weight: .semibold)
         label.textColor = .white
@@ -67,18 +68,18 @@ final class P2POfferCell: UITableViewCell {
         super.init(coder: coder)
     }
 
-    func configure(with offer: P2POffer) {
-        sellerLabel.text = offer.sellerName
-        reserveLabel.text = "Reserve: \(String(format: "%.2f", offer.reserve)) \(offer.toCurrency)"
-        rateLabel.text = String(format: "%.4f", offer.rate)
-        pairLabel.text = "\(offer.fromCurrency) → \(offer.toCurrency)"
+    func configure(sellerName: String, rate: Double, reserve: Double, from: String, to: String) {
+        sellerNameLabel.text = sellerName
+        reserveLabel.text = "Reserve: \(String(format: "%.2f", reserve)) \(to)"
+        rateLabel.text = String(format: "%.4f", rate)
+        pairLabel.text = "\(from) → \(to)"
     }
 }
 
 private extension P2POfferCell {
 
     func setupSubviews() {
-        containerView.addSubview(sellerLabel)
+        containerView.addSubview(sellerNameLabel)
         containerView.addSubview(reserveLabel)
         containerView.addSubview(rateLabel)
         containerView.addSubview(pairLabel)
@@ -87,16 +88,16 @@ private extension P2POfferCell {
 
     func setupConstraints() {
         NSLayoutConstraint.activate([
-            containerView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 4),
-            containerView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -4),
+            containerView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: Constants.verticalMargin),
+            containerView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -Constants.verticalMargin),
             containerView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: Constants.horizontalPadding),
             containerView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -Constants.horizontalPadding),
 
-            sellerLabel.topAnchor.constraint(equalTo: containerView.topAnchor, constant: Constants.padding),
-            sellerLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: Constants.padding),
-            sellerLabel.trailingAnchor.constraint(equalTo: rateLabel.leadingAnchor, constant: -8),
+            sellerNameLabel.topAnchor.constraint(equalTo: containerView.topAnchor, constant: Constants.padding),
+            sellerNameLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: Constants.padding),
+            sellerNameLabel.trailingAnchor.constraint(equalTo: rateLabel.leadingAnchor, constant: -8),
 
-            reserveLabel.topAnchor.constraint(equalTo: sellerLabel.bottomAnchor, constant: 4),
+            reserveLabel.topAnchor.constraint(equalTo: sellerNameLabel.bottomAnchor, constant: 4),
             reserveLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: Constants.padding),
             reserveLabel.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -Constants.padding),
 
@@ -106,7 +107,7 @@ private extension P2POfferCell {
 
             pairLabel.topAnchor.constraint(equalTo: rateLabel.bottomAnchor, constant: 4),
             pairLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -Constants.padding),
-            pairLabel.widthAnchor.constraint(equalToConstant: 100)
+            pairLabel.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -Constants.padding)
         ])
     }
 }

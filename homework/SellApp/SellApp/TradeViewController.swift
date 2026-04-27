@@ -61,12 +61,22 @@ final class TradeViewController: UIViewController {
 
     private var dayResults: [DayResult] = []
     private let chartVC = ChartViewController()
+    private var botManager: BotManager?
+
+    // wallet передаётся снаружи из SceneDelegate
+    private let wallet: Wallet
 
     private var fromCurrency: String = "USD"
     private var toCurrency: String = "BTC"
 
-    private var botManager: BotManager?
-    private var currentWallet: Wallet?
+    init(wallet: Wallet) {
+        self.wallet = wallet
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -112,7 +122,6 @@ private extension TradeViewController {
             action: #selector(walletTapped)
         )
         navigationItem.leftBarButtonItem = trashButton
-        navigationItem.rightBarButtonItems = [shuffleButton, chartButton]
         navigationItem.rightBarButtonItems = [shuffleButton, chartButton, walletButton]
     }
 
@@ -343,8 +352,6 @@ private extension TradeViewController {
     }
 
     func makeBotManager() -> BotManager {
-        let wallet = Wallet(currencies: [fromCurrency, toCurrency])
-        currentWallet = wallet
         let bots = [
             TradingBot(name: "BotAlpha", fromCurrency: fromCurrency, toCurrency: toCurrency),
             TradingBot(name: "BotBeta", fromCurrency: fromCurrency, toCurrency: toCurrency),
@@ -373,7 +380,7 @@ private extension TradeViewController {
     @objc func shuffleTapped() {
         let currencies = CurrencyService.shared.currencies
         guard currencies.count >= 2 else { return }
-        let from = currencies.randomElement()!
+        var from = currencies.randomElement()!
         var to = currencies.randomElement()!
         while to == from {
             to = currencies.randomElement()!
@@ -407,9 +414,8 @@ private extension TradeViewController {
     @objc func chartTapped() {
         navigationController?.pushViewController(chartVC, animated: true)
     }
-    
+
     @objc func walletTapped() {
-        guard let wallet = currentWallet else { return }
         let walletVC = WalletViewController(wallet: wallet)
         present(walletVC, animated: true)
     }

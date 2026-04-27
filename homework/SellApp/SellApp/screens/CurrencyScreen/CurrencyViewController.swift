@@ -4,6 +4,11 @@ protocol CurrencyViewControllerDelegate: AnyObject {
     func didUpdateCurrencyPair(from: String, to: String)
 }
 
+enum CurrencyDisplayMode {
+    case all
+    case apiOnly
+}
+
 final class CurrencyViewController: UIViewController {
 
     private enum Constants {
@@ -16,6 +21,8 @@ final class CurrencyViewController: UIViewController {
     }
 
     weak var delegate: CurrencyViewControllerDelegate?
+    var mode: CurrencyDisplayMode = .all
+
 
     private let viewModel = CurrencyViewModel()
 
@@ -262,6 +269,15 @@ private extension CurrencyViewController {
             emptyFavoritesLabel.topAnchor.constraint(equalTo: collectionView.topAnchor, constant: 40)
         ])
     }
+    
+    func loadApiCurrencies() {
+        NetworkService.shared.fetchRates(for: "USD") { [weak self] result in
+            if case .success(let rates) = result {
+                let currencies = rates.map { $0.toCurrency }.sorted()
+                self?.viewModel.setCustomCurrencies(currencies)
+            }
+        }
+    }
 
     func setupViewModel() {
         viewModel.onUpdate = {
@@ -271,8 +287,13 @@ private extension CurrencyViewController {
             self?.delegate?.didUpdateCurrencyPair(from: from, to: to)
         }
         viewModel.start()
+        if mode == .apiOnly {
+            loadApiCurrencies()
+        }
         updateUI()
     }
+    
+    
 
     func updateUI() {
         fromButton.setTitle(viewModel.fromCurrency, for: .normal)

@@ -4,6 +4,8 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     var window: UIWindow?
 
+    private let sharedWallet = Wallet(currencies: ["USD", "EUR", "BTC", "ETH", "RUB"])
+
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
         guard let windowScene = (scene as? UIWindowScene) else { return }
 
@@ -34,12 +36,16 @@ private extension SceneDelegate {
 
     func makeRootController() -> UIViewController {
         let tabBar = UITabBarController()
-        tabBar.viewControllers = [makeTradeTab(), makeCurrencyTab()]
+        tabBar.viewControllers = [
+            makeTradeTab(),
+            makeCurrencyTab(),
+            makeP2PTab()
+        ]
         return tabBar
     }
 
     func makeTradeTab() -> UIViewController {
-        let tradeVC = TradeViewController()
+        let tradeVC = TradeViewController(wallet: sharedWallet)
         let nav = UINavigationController(rootViewController: tradeVC)
         tradeVC.title = "Trading"
         nav.tabBarItem = UITabBarItem(
@@ -59,5 +65,17 @@ private extension SceneDelegate {
             selectedImage: UIImage(systemName: "dollarsign.circle.fill")
         )
         return currencyVC
+    }
+
+    func makeP2PTab() -> UIViewController {
+        let p2pVC = P2PViewController(wallet: sharedWallet)
+        let nav = UINavigationController(rootViewController: p2pVC)
+        p2pVC.title = "P2P"
+        nav.tabBarItem = UITabBarItem(
+            title: "P2P",
+            image: UIImage(systemName: "arrow.left.arrow.right.circle"),
+            selectedImage: UIImage(systemName: "arrow.left.arrow.right.circle.fill")
+        )
+        return nav
     }
 }

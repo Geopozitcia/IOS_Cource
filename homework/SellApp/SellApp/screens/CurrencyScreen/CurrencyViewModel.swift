@@ -11,6 +11,8 @@ final class CurrencyViewModel {
     var onCurrencyPairChanged: ((String, String) -> Void)?
 
     private let service = CurrencyService.shared
+    private var customCurrencies: [String]? = nil
+
 
     private(set) var fromCurrency: String = "USD"
     private(set) var toCurrency: String = "BTC"
@@ -23,6 +25,9 @@ final class CurrencyViewModel {
     private var timer: Timer?
 
     var currencies: [String] {
+        if let custom = customCurrencies {
+            return custom
+        }
         let filtered = service.currencies(for: selectedFilter)
         if showFavoritesOnly {
             return filtered.filter { service.isFavorite($0) }
@@ -106,6 +111,11 @@ final class CurrencyViewModel {
 
     func setFavoritesFilter(_ isOn: Bool) {
         showFavoritesOnly = isOn
+        onUpdate?()
+    }
+    
+    func setCustomCurrencies(_ currencies: [String]) {
+        customCurrencies = currencies
         onUpdate?()
     }
 }
