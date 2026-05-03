@@ -10,8 +10,13 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         guard let windowScene = (scene as? UIWindowScene) else { return }
         setupNavigationBarAppearance()
         window = UIWindow(windowScene: windowScene)
+        if AuthService.shared.isAutoLoginEnabled && AuthService.shared.isLoggedIn {
+            showSplash()
+        } else {
+            showAuth()
+        }
+        
         window?.makeKeyAndVisible()
-        showAuth()
     }
 
     func showAuth() {
