@@ -1,4 +1,5 @@
 import UIKit
+import Combine
 
 final class AuthViewController: UIViewController {
 
@@ -38,6 +39,11 @@ final class AuthViewController: UIViewController {
     var onSuccess: (() -> Void)?
 
     private var mode: Mode = .login
+    private var cancellables = Set<AnyCancellable>()
+
+    // Published свойства — источники данных для Combine
+    @Published private var loginText: String = ""
+    @Published private var passwordText: String = ""
 
     private let darkColor = UIColor(red: 0.12, green: 0.12, blue: 0.12, alpha: 1)
     private let cardColor = UIColor(red: 0.20, green: 0.20, blue: 0.20, alpha: 1)
@@ -90,19 +96,11 @@ final class AuthViewController: UIViewController {
         let button = UIButton(type: .system)
         button.backgroundColor = .systemBlue
         button.setTitleColor(.white, for: .normal)
+        button.setTitleColor(.systemGray, for: .disabled)
         button.layer.cornerRadius = Constants.cornerRadius
         button.titleLabel?.font = .systemFont(ofSize: Constants.buttonFontSize, weight: .semibold)
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
-    }()
-
-    private let hintLabel: UILabel = {
-        let label = UILabel()
-        label.font = .systemFont(ofSize: Constants.hintFontSize)
-        label.textColor = .systemGray
-        label.textAlignment = .center
-        label.translatesAutoresizingMaskIntoConstraints = false
-        return label
     }()
 
     private let modeSegment: UISegmentedControl = {
@@ -123,11 +121,21 @@ final class AuthViewController: UIViewController {
         return label
     }()
 
+    private let hintLabel: UILabel = {
+        let label = UILabel()
+        label.font = .systemFont(ofSize: Constants.hintFontSize)
+        label.textColor = .systemGray
+        label.textAlignment = .center
+        label.translatesAutoresizingMaskIntoConstraints = false
+        return label
+    }()
+
     override func viewDidLoad() {
         super.viewDidLoad()
         setupBackground()
         setupSubviews()
         setupConstraints()
+        setupCombine()
         updateModeUI()
     }
 }
@@ -145,6 +153,11 @@ private extension AuthViewController {
         setupTextField(loginField)
         setupTextField(passwordField)
 
+        loginField.addTarget(self, action: #selector(loginChanged), for: .editingChanged)
+        passwordField.addTarget(self, action: #selector(passwordChanged), for: .editingChanged)
+        actionButton.addTarget(self, action: #selector(actionTapped), for: .touchUpInside)
+        modeSegment.addTarget(self, action: #selector(modeSwitched), for: .valueChanged)
+
         view.addSubview(logoView)
         view.addSubview(titleLabel)
         view.addSubview(loginField)
@@ -153,9 +166,6 @@ private extension AuthViewController {
         view.addSubview(actionButton)
         view.addSubview(modeSegment)
         view.addSubview(hintLabel)
-
-        actionButton.addTarget(self, action: #selector(actionTapped), for: .touchUpInside)
-        modeSegment.addTarget(self, action: #selector(modeSwitched), for: .valueChanged)
     }
 
     func setupTextField(_ field: UITextField) {
@@ -218,6 +228,23 @@ private extension AuthViewController {
         ])
     }
 
+    // MARK: - Combine
+
+    func setupCombine() {
+        // Combine pipeline — кнопка активна только когда оба поля валидны
+        Publishers.CombineLatest($loginText, $passwordText)
+            .map { login, password in
+                login.count >= Constants.minFieldLength &&
+                password.count >= Constants.minFieldLength
+            }
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] isValid in
+                self?.actionButton.isEnabled = isValid
+                self?.actionButton.alpha = isValid ? 1.0 : 0.5
+            }
+            .store(in: &cancellables)
+    }
+
     func updateModeUI() {
         titleLabel.text = mode.title
         actionButton.setTitle(mode.buttonTitle, for: .normal)
@@ -231,25 +258,10 @@ private extension AuthViewController {
         }
     }
 
-    func showValidationError(_ message: String) {
+    func showValidationMessage(_ message: String, isError: Bool = true) {
         validationLabel.text = message
+        validationLabel.textColor = isError ? .systemRed : .systemGreen
         validationLabel.isHidden = false
-    }
-
-    func validate() -> String? {
-        let login = loginField.text ?? ""
-        let password = passwordField.text ?? ""
-
-        if login.isEmpty || password.isEmpty {
-            return "Please fill in all fields"
-        }
-        if login.count < Constants.minFieldLength {
-            return "Login must be at least \(Constants.minFieldLength) characters"
-        }
-        if password.count < Constants.minFieldLength {
-            return "Password must be at least \(Constants.minFieldLength) characters"
-        }
-        return nil
     }
 }
 
@@ -257,25 +269,27 @@ private extension AuthViewController {
 
 private extension AuthViewController {
 
+    @objc func loginChanged(_ field: UITextField) {
+        loginText = field.text ?? ""
+    }
+
+    @objc func passwordChanged(_ field: UITextField) {
+        passwordText = field.text ?? ""
+    }
+
     @objc func modeSwitched() {
         mode = modeSegment.selectedSegmentIndex == 0 ? .login : .register
         updateModeUI()
     }
 
     @objc func actionTapped() {
-        if let error = validate() {
-            showValidationError(error)
-            return
-        }
-
         let login = loginField.text ?? ""
         let password = passwordField.text ?? ""
 
         switch mode {
         case .register:
             _ = AuthService.shared.register(login: login, password: password)
-            showValidationError("Registered! You can now sign in.")
-            validationLabel.textColor = .systemGreen
+            showValidationMessage("Registered! You can now sign in.", isError: false)
             modeSegment.selectedSegmentIndex = 0
             mode = .login
             updateModeUI()
@@ -284,8 +298,7 @@ private extension AuthViewController {
             if AuthService.shared.login(login: login, password: password) {
                 onSuccess?()
             } else {
-                showValidationError("Invalid login or password")
-                validationLabel.textColor = .systemRed
+                showValidationMessage("Invalid login or password")
             }
         }
     }
