@@ -8,17 +8,26 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
         guard let windowScene = (scene as? UIWindowScene) else { return }
-
         setupNavigationBarAppearance()
-
         window = UIWindow(windowScene: windowScene)
+        window?.makeKeyAndVisible()
+        showAuth()
+    }
 
+    func showAuth() {
+        let authVC = AuthViewController()
+        authVC.onSuccess = { [weak self] in
+            self?.showSplash()
+        }
+        window?.rootViewController = authVC
+    }
+
+    func showSplash() {
         let splash = SplashScreenViewController()
         splash.onFinished = { [weak self] in
             self?.window?.rootViewController = self?.makeRootController()
         }
         window?.rootViewController = splash
-        window?.makeKeyAndVisible()
     }
 }
 
@@ -39,10 +48,25 @@ private extension SceneDelegate {
         tabBar.viewControllers = [
             makeTradeTab(),
             makeCurrencyTab(),
-            makeP2PTab()
+            makeP2PTab(),
+            makeSettingsTab()
         ]
         return tabBar
     }
+    
+    func makeSettingsTab() -> UIViewController {
+        let settingsVC = SettingsViewController()
+        settingsVC.onLogout = { [weak self] in
+            self?.showAuth()
+        }
+        settingsVC.tabBarItem = UITabBarItem(
+            title: "Settings",
+            image: UIImage(systemName: "gearshape"),
+            selectedImage: UIImage(systemName: "gearshape.fill")
+        )
+        return settingsVC
+    }
+    
 
     func makeTradeTab() -> UIViewController {
         let tradeVC = TradeViewController(wallet: sharedWallet)
