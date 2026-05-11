@@ -246,6 +246,7 @@ extension P2PViewController: UITableViewDataSource {
             from: viewModel.fromCurrency,
             to: viewModel.toCurrency
         )
+        cell.accessoryType = .detailButton
         return cell
     }
 }

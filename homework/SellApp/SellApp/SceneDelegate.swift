@@ -6,6 +6,10 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     private let sharedWallet = Wallet(currencies: ["USD", "EUR", "BTC", "ETH", "RUB"])
 
+    // храним координаторы чтобы они не уничтожились
+    private var tradeCoordinator: TradeCoordinator?
+    private var p2pCoordinator: P2PCoordinator?
+
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
         guard let windowScene = (scene as? UIWindowScene) else { return }
         setupNavigationBarAppearance()
@@ -15,7 +19,6 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         } else {
             showAuth()
         }
-        
         window?.makeKeyAndVisible()
     }
 
@@ -58,31 +61,17 @@ private extension SceneDelegate {
         ]
         return tabBar
     }
-    
-    func makeSettingsTab() -> UIViewController {
-        let settingsVC = SettingsViewController()
-        settingsVC.onLogout = { [weak self] in
-            self?.showAuth()
-        }
-        settingsVC.tabBarItem = UITabBarItem(
-            title: "Settings",
-            image: UIImage(systemName: "gearshape"),
-            selectedImage: UIImage(systemName: "gearshape.fill")
-        )
-        return settingsVC
-    }
-    
 
     func makeTradeTab() -> UIViewController {
         let nav = UINavigationController()
         let coordinator = TradeCoordinator(navigationController: nav, wallet: sharedWallet)
+        tradeCoordinator = coordinator
         coordinator.start()
         nav.tabBarItem = UITabBarItem(
             title: "Trade",
             image: UIImage(systemName: "chart.line.uptrend.xyaxis"),
             selectedImage: UIImage(systemName: "chart.line.uptrend.xyaxis.circle.fill")
         )
-        nav.topViewController?.title = "Trading"
         return nav
     }
 
@@ -100,12 +89,26 @@ private extension SceneDelegate {
     func makeP2PTab() -> UIViewController {
         let nav = UINavigationController()
         let coordinator = P2PCoordinator(navigationController: nav, wallet: sharedWallet)
+        p2pCoordinator = coordinator
         coordinator.start()
         nav.tabBarItem = UITabBarItem(
-            title: "P2P",
+            title: "P2P Exchange",
             image: UIImage(systemName: "arrow.left.arrow.right.circle"),
             selectedImage: UIImage(systemName: "arrow.left.arrow.right.circle.fill")
         )
         return nav
+    }
+
+    func makeSettingsTab() -> UIViewController {
+        let settingsVC = SettingsViewController()
+        settingsVC.onLogout = { [weak self] in
+            self?.showAuth()
+        }
+        settingsVC.tabBarItem = UITabBarItem(
+            title: "Settings",
+            image: UIImage(systemName: "gearshape"),
+            selectedImage: UIImage(systemName: "gearshape.fill")
+        )
+        return settingsVC
     }
 }

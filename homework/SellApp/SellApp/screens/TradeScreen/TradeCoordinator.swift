@@ -15,6 +15,7 @@ final class TradeCoordinator: Coordinator {
         let viewModel = TradeViewModel(wallet: wallet)
         let vc = TradeViewController(viewModel: viewModel, coordinator: self)
         viewModel.coordinator = self
+        vc.title = "Trading"  // добавь эту строку
         navigationController.setViewControllers([vc], animated: false)
     }
 
