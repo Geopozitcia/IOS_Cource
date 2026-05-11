@@ -28,6 +28,9 @@ final class TradeViewController: UIViewController {
         static let oldPriceFontSize: CGFloat = 15
     }
 
+    private let viewModel: TradeViewModel
+    private weak var coordinator: TradeCoordinator?
+
     private let darkColor = UIColor(red: 0.12, green: 0.12, blue: 0.12, alpha: 1)
     private let cardColor = UIColor(red: 0.20, green: 0.20, blue: 0.20, alpha: 1)
     private let innerColor = UIColor(red: 0.25, green: 0.25, blue: 0.25, alpha: 1)
@@ -59,18 +62,9 @@ final class TradeViewController: UIViewController {
         return label
     }()
 
-    private var dayResults: [DayResult] = []
-    private let chartVC = ChartViewController()
-    private var botManager: BotManager?
-
-    // wallet передаётся снаружи из SceneDelegate
-    private let wallet: Wallet
-
-    private var fromCurrency: String = "USD"
-    private var toCurrency: String = "BTC"
-
-    init(wallet: Wallet) {
-        self.wallet = wallet
+    init(viewModel: TradeViewModel, coordinator: TradeCoordinator) {
+        self.viewModel = viewModel
+        self.coordinator = coordinator
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -84,7 +78,8 @@ final class TradeViewController: UIViewController {
         setupSubviews()
         setupConstraints()
         setupNavigationBar()
-        updatePairButton()
+        bindViewModel()
+        updateUI()
     }
 }
 
@@ -339,25 +334,28 @@ private extension TradeViewController {
         ])
     }
 
-    func updatePairButton() {
-        currencyPairButton.setTitle("\(fromCurrency)  →  \(toCurrency)", for: .normal)
+    func bindViewModel() {
+        viewModel.onUpdate = { [weak self] in
+            self?.updateUI()
+        }
     }
 
-    func resetTradingState() {
-        dayResults = []
-        tableView.isHidden = true
-        emptyLabel.isHidden = false
-        tableView.reloadData()
-        chartVC.resetCandles()
-    }
+    func updateUI() {
+        currencyPairButton.setTitle(viewModel.pairTitle, for: .normal)
 
-    func makeBotManager() -> BotManager {
-        let bots = [
-            TradingBot(name: "BotAlpha", fromCurrency: fromCurrency, toCurrency: toCurrency),
-            TradingBot(name: "BotBeta", fromCurrency: fromCurrency, toCurrency: toCurrency),
-            TradingBot(name: "BotGamma", fromCurrency: fromCurrency, toCurrency: toCurrency)
-        ]
-        return BotManager(bots: bots, wallet: wallet)
+        if viewModel.isLoading {
+            runButton.isEnabled = false
+            loadingIndicator.startAnimating()
+            tableView.isHidden = true
+            emptyLabel.isHidden = true
+        } else {
+            runButton.isEnabled = true
+            loadingIndicator.stopAnimating()
+            let hasResults = !viewModel.dayResults.isEmpty
+            tableView.isHidden = !hasResults
+            emptyLabel.isHidden = hasResults
+            tableView.reloadData()
+        }
     }
 }
 
@@ -366,58 +364,27 @@ private extension TradeViewController {
 private extension TradeViewController {
 
     @objc func pairButtonTapped() {
-        let quickVC = QuickCurrencyViewController()
-        quickVC.setInitialPair(from: fromCurrency, to: toCurrency)
-        quickVC.delegate = self
-        let nav = UINavigationController(rootViewController: quickVC)
-        present(nav, animated: true)
+        viewModel.openCurrencyPicker(delegate: self)
     }
 
     @objc func trashTapped() {
-        resetTradingState()
+        viewModel.reset()
     }
 
     @objc func shuffleTapped() {
-        let currencies = CurrencyService.shared.currencies
-        guard currencies.count >= 2 else { return }
-        var from = currencies.randomElement()!
-        var to = currencies.randomElement()!
-        while to == from {
-            to = currencies.randomElement()!
-        }
-        fromCurrency = from
-        toCurrency = to
-        updatePairButton()
-        resetTradingState()
+        viewModel.shuffle()
     }
 
     @objc func runTapped() {
-        runButton.isEnabled = false
-        emptyLabel.isHidden = true
-        tableView.isHidden = true
-        loadingIndicator.startAnimating()
-
-        let manager = makeBotManager()
-        botManager = manager
-
-        manager.runAll { [weak self] results in
-            guard let self = self else { return }
-            self.dayResults = results
-            self.loadingIndicator.stopAnimating()
-            self.tableView.isHidden = false
-            self.tableView.reloadData()
-            self.runButton.isEnabled = true
-            self.chartVC.loadCandles()
-        }
+        viewModel.runBots()
     }
 
     @objc func chartTapped() {
-        navigationController?.pushViewController(chartVC, animated: true)
+        viewModel.openChart()
     }
 
     @objc func walletTapped() {
-        let walletVC = WalletViewController(wallet: wallet)
-        present(walletVC, animated: true)
+        viewModel.openWallet()
     }
 }
 
@@ -426,11 +393,7 @@ private extension TradeViewController {
 extension TradeViewController: CurrencyViewControllerDelegate {
 
     func didUpdateCurrencyPair(from: String, to: String) {
-        guard from != fromCurrency || to != toCurrency else { return }
-        fromCurrency = from
-        toCurrency = to
-        updatePairButton()
-        resetTradingState()
+        viewModel.updatePair(from: from, to: to)
     }
 }
 
@@ -439,14 +402,14 @@ extension TradeViewController: CurrencyViewControllerDelegate {
 extension TradeViewController: UITableViewDataSource {
 
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return dayResults.count
+        return viewModel.dayResults.count
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         guard let cell = tableView.dequeueReusableCell(withIdentifier: DayResultCell.reuseId, for: indexPath) as? DayResultCell else {
             return UITableViewCell()
         }
-        cell.configure(with: dayResults[indexPath.row])
+        cell.configure(with: viewModel.dayResults[indexPath.row])
         return cell
     }
 }

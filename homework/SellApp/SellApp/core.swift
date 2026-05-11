@@ -8,6 +8,12 @@ protocol Tradable {
     func priceDescription() -> String
 }
 
+struct P2POffer {
+    let sellerName: String
+    let rate: Double
+    let reserve: Double
+}
+
 // MARK: - TradeAction
 
 enum TradeAction {

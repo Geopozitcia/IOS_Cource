@@ -74,14 +74,15 @@ private extension SceneDelegate {
     
 
     func makeTradeTab() -> UIViewController {
-        let tradeVC = TradeViewController(wallet: sharedWallet)
-        let nav = UINavigationController(rootViewController: tradeVC)
-        tradeVC.title = "Trading"
+        let nav = UINavigationController()
+        let coordinator = TradeCoordinator(navigationController: nav, wallet: sharedWallet)
+        coordinator.start()
         nav.tabBarItem = UITabBarItem(
             title: "Trade",
             image: UIImage(systemName: "chart.line.uptrend.xyaxis"),
             selectedImage: UIImage(systemName: "chart.line.uptrend.xyaxis.circle.fill")
         )
+        nav.topViewController?.title = "Trading"
         return nav
     }
 
@@ -97,9 +98,9 @@ private extension SceneDelegate {
     }
 
     func makeP2PTab() -> UIViewController {
-        let p2pVC = P2PViewController(wallet: sharedWallet)
-        let nav = UINavigationController(rootViewController: p2pVC)
-        p2pVC.title = "P2P"
+        let nav = UINavigationController()
+        let coordinator = P2PCoordinator(navigationController: nav, wallet: sharedWallet)
+        coordinator.start()
         nav.tabBarItem = UITabBarItem(
             title: "P2P",
             image: UIImage(systemName: "arrow.left.arrow.right.circle"),

@@ -1,11 +1,5 @@
 import UIKit
 
-struct P2POffer {
-    let sellerName: String
-    let rate: Double
-    let reserve: Double
-}
-
 final class P2PViewController: UIViewController {
 
     private enum Constants {
@@ -14,23 +8,11 @@ final class P2PViewController: UIViewController {
         static let buttonCornerRadius: CGFloat = 10
         static let buttonFontSize: CGFloat = 18
         static let balanceFontSize: CGFloat = 13
-        static let headerHeight: CGFloat = 130
         static let rowHeight: CGFloat = 80
-        static let sellerNames = [
-            "CryptoKing", "FastTrader", "P2PMaster",
-            "CoinSwap", "SafeExchange", "TrustPeer",
-            "QuickDeal", "AlphaTrader", "BitBroker"
-        ]
-        static let discountRange: ClosedRange<Double> = 0.95...0.99
     }
 
-    private let wallet: Wallet
-
-    private var fromCurrency: String = "USD"
-    private var toCurrency: String = "EUR"
-    private var offers: [P2POffer] = []
-    private var baseRate: Double = 0.0
-    private var isLoading: Bool = false
+    private let viewModel: P2PViewModel
+    private weak var coordinator: P2PCoordinator?
 
     private let fromButton = UIButton(type: .system)
     private let toButton = UIButton(type: .system)
@@ -50,8 +32,9 @@ final class P2PViewController: UIViewController {
         return label
     }()
 
-    init(wallet: Wallet) {
-        self.wallet = wallet
+    init(viewModel: P2PViewModel, coordinator: P2PCoordinator) {
+        self.viewModel = viewModel
+        self.coordinator = coordinator
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -66,8 +49,8 @@ final class P2PViewController: UIViewController {
         setupSubviews()
         setupConstraints()
         setupNavigationBar()
-        updateBalanceLabels()
-        loadOffers()
+        bindViewModel()
+        viewModel.loadOffers()
     }
 }
 
@@ -108,12 +91,11 @@ private extension P2PViewController {
     }
 
     func setupFromButton() {
-        fromButton.setTitle(fromCurrency, for: .normal)
         fromButton.titleLabel?.font = .systemFont(ofSize: Constants.buttonFontSize, weight: .bold)
         fromButton.setTitleColor(.white, for: .normal)
         fromButton.backgroundColor = UIColor(red: 0.2, green: 0.2, blue: 0.2, alpha: 1)
         fromButton.layer.cornerRadius = Constants.buttonCornerRadius
-        fromButton.addTarget(self, action: #selector(fromTapped), for: .touchUpInside)
+        fromButton.addTarget(self, action: #selector(currencyTapped), for: .touchUpInside)
         fromButton.translatesAutoresizingMaskIntoConstraints = false
     }
 
@@ -125,12 +107,11 @@ private extension P2PViewController {
     }
 
     func setupToButton() {
-        toButton.setTitle(toCurrency, for: .normal)
         toButton.titleLabel?.font = .systemFont(ofSize: Constants.buttonFontSize, weight: .bold)
         toButton.setTitleColor(.white, for: .normal)
         toButton.backgroundColor = UIColor(red: 0.2, green: 0.2, blue: 0.2, alpha: 1)
         toButton.layer.cornerRadius = Constants.buttonCornerRadius
-        toButton.addTarget(self, action: #selector(toTapped), for: .touchUpInside)
+        toButton.addTarget(self, action: #selector(currencyTapped), for: .touchUpInside)
         toButton.translatesAutoresizingMaskIntoConstraints = false
     }
 
@@ -197,107 +178,29 @@ private extension P2PViewController {
             loadingIndicator.centerYAnchor.constraint(equalTo: tableView.centerYAnchor)
         ])
     }
-}
 
-// MARK: - Data
-
-private extension P2PViewController {
-
-    func loadOffers() {
-        isLoading = true
-        emptyLabel.isHidden = true
-        loadingIndicator.startAnimating()
-        tableView.isHidden = true
-
-        NetworkService.shared.fetchRates(for: fromCurrency) { [weak self] result in
-            guard let self = self else { return }
-            self.isLoading = false
-            self.loadingIndicator.stopAnimating()
-
-            switch result {
-            case .success(let rates):
-                if let rate = rates.first(where: { $0.toCurrency == self.toCurrency })?.rate {
-                    self.baseRate = rate
-                    self.generateOffers(from: rate)
-                    self.tableView.isHidden = false
-                    self.tableView.reloadData()
-                } else {
-                    self.showEmpty()
-                }
-            case .failure:
-                self.showEmpty()
-            }
+    func bindViewModel() {
+        viewModel.onUpdate = { [weak self] in
+            self?.updateUI()
         }
     }
 
-    func generateOffers(from baseRate: Double) {
-        offers = Constants.sellerNames.map { name in
-            let discount = Double.random(in: Constants.discountRange)
-            let rate = baseRate * discount
-            let reserve = Double.random(in: 100...10000)
-            return P2POffer(sellerName: name, rate: rate, reserve: reserve)
-        }.sorted { $0.rate > $1.rate }
-    }
+    func updateUI() {
+        fromButton.setTitle(viewModel.fromCurrency, for: .normal)
+        toButton.setTitle(viewModel.toCurrency, for: .normal)
+        fromBalanceLabel.text = viewModel.fromBalance
+        toBalanceLabel.text = viewModel.toBalance
 
-    func showEmpty() {
-        tableView.isHidden = true
-        emptyLabel.isHidden = false
-    }
-
-    func updateBalanceLabels() {
-        let fromBalance = wallet.balance(for: fromCurrency)
-        let toBalance = wallet.balance(for: toCurrency)
-        fromBalanceLabel.text = "Balance: \(String(format: "%.2f", fromBalance)) \(fromCurrency)"
-        toBalanceLabel.text = "Balance: \(String(format: "%.2f", toBalance)) \(toCurrency)"
-    }
-
-    func showExchangeAlert(for offer: P2POffer) {
-        let alert = UIAlertController(
-            title: offer.sellerName,
-            message: "Rate: \(String(format: "%.4f", offer.rate))\nEnter amount in \(fromCurrency)",
-            preferredStyle: .alert
-        )
-        alert.addTextField { field in
-            field.keyboardType = .decimalPad
-            field.placeholder = "Amount"
+        if viewModel.isLoading {
+            loadingIndicator.startAnimating()
+            tableView.isHidden = true
+            emptyLabel.isHidden = true
+        } else {
+            loadingIndicator.stopAnimating()
+            tableView.isHidden = viewModel.offers.isEmpty
+            emptyLabel.isHidden = !viewModel.offers.isEmpty
+            tableView.reloadData()
         }
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-        alert.addAction(UIAlertAction(title: "Exchange", style: .default) { [weak self] _ in
-            guard let self = self,
-                  let text = alert.textFields?.first?.text,
-                  let amount = Double(text) else { return }
-            self.executeExchange(amount: amount, offer: offer)
-        })
-        present(alert, animated: true)
-    }
-
-    func executeExchange(amount: Double, offer: P2POffer) {
-        NetworkService.shared.executeExchange(
-            from: fromCurrency,
-            to: toCurrency,
-            amount: amount
-        ) { [weak self] result in
-            guard let self = self else { return }
-            switch result {
-            case .success(let received):
-                self.wallet.deduct(amount: amount, currency: self.fromCurrency)
-                self.wallet.deposit(amount: received, currency: self.toCurrency)
-                self.updateBalanceLabels()
-                self.showResult(success: true, message: "You received \(String(format: "%.4f", received)) \(self.toCurrency)")
-            case .failure(let error):
-                self.showResult(success: false, message: error.description)
-            }
-        }
-    }
-
-    func showResult(success: Bool, message: String) {
-        let alert = UIAlertController(
-            title: success ? "Success" : "Exchange Failed",
-            message: message,
-            preferredStyle: .alert
-        )
-        alert.addAction(UIAlertAction(title: "OK", style: .default))
-        present(alert, animated: true)
     }
 }
 
@@ -305,27 +208,12 @@ private extension P2PViewController {
 
 private extension P2PViewController {
 
-    @objc func fromTapped() {
-        let currencyVC = CurrencyViewController()
-        currencyVC.setInitialPair(from: fromCurrency, to: toCurrency)
-        currencyVC.delegate = self
-        currencyVC.mode = .apiOnly
-        let nav = UINavigationController(rootViewController: currencyVC)
-        present(nav, animated: true)
-    }
-
-    @objc func toTapped() {
-        let currencyVC = CurrencyViewController()
-        currencyVC.setInitialPair(from: fromCurrency, to: toCurrency)
-        currencyVC.delegate = self
-        currencyVC.mode = .apiOnly
-        let nav = UINavigationController(rootViewController: currencyVC)
-        present(nav, animated: true)
+    @objc func currencyTapped() {
+        viewModel.openCurrencyPicker(delegate: self)
     }
 
     @objc func walletTapped() {
-        let walletVC = WalletViewController(wallet: wallet)
-        present(walletVC, animated: true)
+        viewModel.openWallet()
     }
 }
 
@@ -334,12 +222,7 @@ private extension P2PViewController {
 extension P2PViewController: CurrencyViewControllerDelegate {
 
     func didUpdateCurrencyPair(from: String, to: String) {
-        fromCurrency = from
-        toCurrency = to
-        fromButton.setTitle(from, for: .normal)
-        toButton.setTitle(to, for: .normal)
-        updateBalanceLabels()
-        loadOffers()
+        viewModel.updatePair(from: from, to: to)
     }
 }
 
@@ -348,15 +231,21 @@ extension P2PViewController: CurrencyViewControllerDelegate {
 extension P2PViewController: UITableViewDataSource {
 
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return offers.count
+        return viewModel.offers.count
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         guard let cell = tableView.dequeueReusableCell(withIdentifier: P2POfferCell.reuseId, for: indexPath) as? P2POfferCell else {
             return UITableViewCell()
         }
-        let offer = offers[indexPath.row]
-        cell.configure(sellerName: offer.sellerName, rate: offer.rate, reserve: offer.reserve, from: fromCurrency, to: toCurrency)
+        let offer = viewModel.offers[indexPath.row]
+        cell.configure(
+            sellerName: offer.sellerName,
+            rate: offer.rate,
+            reserve: offer.reserve,
+            from: viewModel.fromCurrency,
+            to: viewModel.toCurrency
+        )
         return cell
     }
 }
@@ -366,6 +255,20 @@ extension P2PViewController: UITableViewDataSource {
 extension P2PViewController: UITableViewDelegate {
 
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        showExchangeAlert(for: offers[indexPath.row])
+        viewModel.selectOffer(viewModel.offers[indexPath.row])
+    }
+
+    func tableView(_ tableView: UITableView, accessoryButtonTappedForRowWith indexPath: IndexPath) {
+        viewModel.openSellerInfo(viewModel.offers[indexPath.row])
+    }
+
+    func tableView(_ tableView: UITableView, trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
+        let infoAction = UIContextualAction(style: .normal, title: "Info") { [weak self] _, _, done in
+            guard let self = self else { return }
+            self.viewModel.openSellerInfo(self.viewModel.offers[indexPath.row])
+            done(true)
+        }
+        infoAction.backgroundColor = .systemBlue
+        return UISwipeActionsConfiguration(actions: [infoAction])
     }
 }
