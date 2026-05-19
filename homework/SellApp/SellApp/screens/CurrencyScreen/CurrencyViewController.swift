@@ -280,8 +280,8 @@ private extension CurrencyViewController {
     }
 
     func setupViewModel() {
-        viewModel.onUpdate = {
-            self.updateUI()
+        viewModel.onUpdate = { [weak self] in
+            self?.updateUI()
         }
         viewModel.onCurrencyPairChanged = { [weak self] from, to in
             self?.delegate?.didUpdateCurrencyPair(from: from, to: to)
