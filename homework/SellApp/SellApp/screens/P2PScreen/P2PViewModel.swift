@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 
 enum P2PScreenState { // enum replace isLoading: Bool
     case idle
@@ -57,6 +58,7 @@ final class P2PViewModel {
     }
 
     func loadOffers() {
+        AppLogger.p2p.info("Loading offers: \(self.fromCurrency) → \(self.toCurrency)")
         state = .loading
         onUpdate?()
 
@@ -64,8 +66,15 @@ final class P2PViewModel {
             guard let self else { return }
             switch result {
             case .success(let offers):
-                self.state = offers.isEmpty ? .error("No offers available") : .loaded(offers)
+                if offers.isEmpty {
+                    AppLogger.p2p.warning("No offers found for \(self.fromCurrency) → \(self.toCurrency)")
+                    self.state = .error("No offers available")
+                } else {
+                    AppLogger.p2p.info("Loaded \(offers.count) offers for \(self.fromCurrency) → \(self.toCurrency)")
+                    self.state = .loaded(offers)
+                }
             case .failure(let error):
+                AppLogger.p2p.error("Failed to load offers: \(error.description)")
                 self.state = .error(error.description)
             }
             self.onUpdate?()
@@ -107,6 +116,7 @@ final class P2PViewModel {
 private extension P2PViewModel {
 
     func executeExchange(amount: Double, offer: P2POffer) {
+        AppLogger.p2p.info("Executing exchange with \(offer.sellerName): \(amount) \(self.fromCurrency) → \(self.toCurrency)")
         executeExchangeUseCase.execute(
             from: fromCurrency,
             to: toCurrency,
@@ -115,6 +125,7 @@ private extension P2PViewModel {
             guard let self else { return }
             switch result {
             case .success(let received):
+                AppLogger.p2p.info("Exchange completed: received \(received) \(self.toCurrency)")
                 self.wallet.deduct(amount: amount, currency: self.fromCurrency)
                 self.wallet.deposit(amount: received, currency: self.toCurrency)
                 self.onUpdate?()
@@ -123,6 +134,7 @@ private extension P2PViewModel {
                     message: "You received \(String(format: "%.4f", received)) \(self.toCurrency)"
                 )
             case .failure(let error):
+                AppLogger.p2p.error("Exchange failed: \(error.description)")
                 self.coordinator?.showResult(success: false, message: error.description)
             }
         }

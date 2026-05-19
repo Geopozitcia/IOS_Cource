@@ -1,5 +1,7 @@
 import UIKit
 import Combine
+import OSLog
+
 
 final class AuthViewController: UIViewController {
 
@@ -281,23 +283,31 @@ private extension AuthViewController {
         mode = modeSegment.selectedSegmentIndex == 0 ? .login : .register
         updateModeUI()
     }
-
-    @objc func actionTapped() {
+ 
+    @objc func actionTapped() { // add loging in this func
         let login = loginField.text ?? ""
         let password = passwordField.text ?? ""
 
         switch mode {
         case .register:
-            _ = AuthService.shared.register(login: login, password: password)
-            showValidationMessage("Registered! You can now sign in.", isError: false)
-            modeSegment.selectedSegmentIndex = 0
-            mode = .login
-            updateModeUI()
+            let success = AuthService.shared.register(login: login, password: password)
+            if success {
+                AppLogger.auth.info("User registered successfully: \(login)")
+                showValidationMessage("Registered! You can now sign in.", isError: false)
+                modeSegment.selectedSegmentIndex = 0
+                mode = .login
+                updateModeUI()
+            } else {
+                AppLogger.auth.warning("Registration failed for: \(login)")
+                showValidationMessage("Registration failed")
+            }
 
         case .login:
             if AuthService.shared.login(login: login, password: password) {
+                AppLogger.auth.info("User logged in successfully: \(login)")
                 onSuccess?()
             } else {
+                AppLogger.auth.error("Login failed — invalid credentials for: \(login)")
                 showValidationMessage("Invalid login or password")
             }
         }
