@@ -25,14 +25,24 @@ final class CurrencyViewModel {
     private var timer: Timer?
 
     var currencies: [String] {
+        let base: [String]
         if let custom = customCurrencies {
-            return custom
+            switch selectedFilter {
+            case .all:
+                base = custom
+            case .fiat:
+                base = custom.filter { service.currencies(for: .fiat).contains($0) }
+            case .crypto:
+                base = custom.filter { service.currencies(for: .crypto).contains($0) }
+            }
+        } else {
+            base = service.currencies(for: selectedFilter)
         }
-        let filtered = service.currencies(for: selectedFilter)
+
         if showFavoritesOnly {
-            return filtered.filter { service.isFavorite($0) }
+            return base.filter { service.isFavorite($0) }
         }
-        return filtered
+        return base
     }
 
     var currentRate: Double {

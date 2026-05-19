@@ -185,21 +185,35 @@ private extension P2PViewController {
         }
     }
 
-    func updateUI() {
+    func updateUI() { // all cases for view
         fromButton.setTitle(viewModel.fromCurrency, for: .normal)
         toButton.setTitle(viewModel.toCurrency, for: .normal)
         fromBalanceLabel.text = viewModel.fromBalance
         toBalanceLabel.text = viewModel.toBalance
 
-        if viewModel.isLoading {
+        switch viewModel.state {
+        case .idle:
+            loadingIndicator.stopAnimating()
+            tableView.isHidden = true
+            emptyLabel.isHidden = true
+
+        case .loading:
             loadingIndicator.startAnimating()
             tableView.isHidden = true
             emptyLabel.isHidden = true
-        } else {
-            loadingIndicator.stopAnimating()
-            tableView.isHidden = viewModel.offers.isEmpty
-            emptyLabel.isHidden = !viewModel.offers.isEmpty
             tableView.reloadData()
+
+        case .loaded:
+            loadingIndicator.stopAnimating()
+            tableView.isHidden = false
+            emptyLabel.isHidden = true
+            tableView.reloadData()
+
+        case .error(let message):
+            loadingIndicator.stopAnimating()
+            tableView.isHidden = true
+            emptyLabel.isHidden = false
+            emptyLabel.text = message
         }
     }
 }

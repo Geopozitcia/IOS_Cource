@@ -1,27 +1,40 @@
 import Foundation
 
+enum P2PScreenState { // enum replace isLoading: Bool
+    case idle
+    case loading
+    case loaded([P2POffer])
+    case error(String)
+}
+
 final class P2PViewModel {
 
     private enum Constants {
-        static let sellerNames = [
-            "CryptoKing", "FastTrader", "P2PMaster",
-            "CoinSwap", "SafeExchange", "TrustPeer",
-            "QuickDeal", "AlphaTrader", "BitBroker"
-        ]
-        static let discountRange: ClosedRange<Double> = 0.95...0.99
+        static let defaultFromCurrency = "USD"
+        static let defaultToCurrency = "EUR"
     }
 
     weak var coordinator: P2PCoordinator?
 
     private let wallet: Wallet
+    private let loadOffersUseCase: LoadOffersUseCase
+    private let executeExchangeUseCase: ExecuteExchangeUseCase
 
-    private(set) var fromCurrency: String = "USD"
-    private(set) var toCurrency: String = "EUR"
-    private(set) var offers: [P2POffer] = []
-    private(set) var isLoading: Bool = false
+    private(set) var state: P2PScreenState = .idle
+    private(set) var fromCurrency: String = Constants.defaultFromCurrency
+    private(set) var toCurrency: String = Constants.defaultToCurrency
 
     var onUpdate: (() -> Void)?
-    var onError: (() -> Void)?
+
+    var offers: [P2POffer] { // comuting var
+        if case .loaded(let offers) = state { return offers }
+        return []
+    }
+
+    var isLoading: Bool { // computing var
+        if case .loading = state { return true }
+        return false
+    }
 
     var fromBalance: String {
         let balance = wallet.balance(for: fromCurrency)
@@ -33,29 +46,28 @@ final class P2PViewModel {
         return "Balance: \(String(format: "%.2f", balance)) \(toCurrency)"
     }
 
-    init(wallet: Wallet) {
+    init(
+        wallet: Wallet,
+        loadOffersUseCase: LoadOffersUseCase = LoadOffersUseCase(),
+        executeExchangeUseCase: ExecuteExchangeUseCase = ExecuteExchangeUseCase()
+    ) {
         self.wallet = wallet
+        self.loadOffersUseCase = loadOffersUseCase
+        self.executeExchangeUseCase = executeExchangeUseCase
     }
 
     func loadOffers() {
-        isLoading = true
+        state = .loading
         onUpdate?()
 
-        NetworkService.shared.fetchRates(for: fromCurrency) { [weak self] result in
-            guard let self = self else { return }
-            self.isLoading = false
-
+        loadOffersUseCase.execute(from: fromCurrency, to: toCurrency) { [weak self] result in
+            guard let self else { return }
             switch result {
-            case .success(let rates):
-                if let rate = rates.first(where: { $0.toCurrency == self.toCurrency })?.rate {
-                    self.offers = self.generateOffers(from: rate)
-                } else {
-                    self.offers = []
-                }
-            case .failure:
-                self.offers = []
+            case .success(let offers):
+                self.state = offers.isEmpty ? .error("No offers available") : .loaded(offers)
+            case .failure(let error):
+                self.state = .error(error.description)
             }
-
             self.onUpdate?()
         }
     }
@@ -94,22 +106,13 @@ final class P2PViewModel {
 
 private extension P2PViewModel {
 
-    func generateOffers(from baseRate: Double) -> [P2POffer] {
-        return Constants.sellerNames.map { name in
-            let discount = Double.random(in: Constants.discountRange)
-            let rate = baseRate * discount
-            let reserve = Double.random(in: 100...10000)
-            return P2POffer(sellerName: name, rate: rate, reserve: reserve)
-        }.sorted { $0.rate > $1.rate }
-    }
-
     func executeExchange(amount: Double, offer: P2POffer) {
-        NetworkService.shared.executeExchange(
+        executeExchangeUseCase.execute(
             from: fromCurrency,
             to: toCurrency,
             amount: amount
         ) { [weak self] result in
-            guard let self = self else { return }
+            guard let self else { return }
             switch result {
             case .success(let received):
                 self.wallet.deduct(amount: amount, currency: self.fromCurrency)
