@@ -15,7 +15,7 @@ final class TradeCoordinator: Coordinator {
         let viewModel = TradeViewModel(wallet: wallet)
         let vc = TradeViewController(viewModel: viewModel, coordinator: self)
         viewModel.coordinator = self
-        vc.title = "Trading"  // добавь эту строку
+        vc.title = "Trading"
         navigationController.setViewControllers([vc], animated: false)
     }
 
@@ -42,5 +42,10 @@ final class TradeCoordinator: Coordinator {
         quickVC.delegate = delegate
         let nav = UINavigationController(rootViewController: quickVC)
         navigationController.present(nav, animated: true)
+    }
+    
+    func showHeatmap() {
+        let heatmapVC = HeatmapViewController()
+        navigationController.pushViewController(heatmapVC, animated: true)
     }
 }

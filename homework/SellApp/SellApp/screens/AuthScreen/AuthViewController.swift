@@ -131,6 +131,15 @@ final class AuthViewController: UIViewController {
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
+    
+    private let supportButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.setTitle("Не получается войти?", for: .normal)
+        button.setTitleColor(.systemGray, for: .normal)
+        button.titleLabel?.font = .systemFont(ofSize: 14)
+        button.translatesAutoresizingMaskIntoConstraints = false
+        return button
+    }()
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -159,6 +168,7 @@ private extension AuthViewController {
         passwordField.addTarget(self, action: #selector(passwordChanged), for: .editingChanged)
         actionButton.addTarget(self, action: #selector(actionTapped), for: .touchUpInside)
         modeSegment.addTarget(self, action: #selector(modeSwitched), for: .valueChanged)
+        supportButton.addTarget(self, action: #selector(supportTapped), for: .touchUpInside)
 
         view.addSubview(logoView)
         view.addSubview(titleLabel)
@@ -168,6 +178,8 @@ private extension AuthViewController {
         view.addSubview(actionButton)
         view.addSubview(modeSegment)
         view.addSubview(hintLabel)
+        view.addSubview(supportButton)
+
     }
 
     func setupTextField(_ field: UITextField) {
@@ -226,7 +238,10 @@ private extension AuthViewController {
 
             hintLabel.topAnchor.constraint(equalTo: modeSegment.bottomAnchor, constant: 8),
             hintLabel.leadingAnchor.constraint(equalTo: safeArea.leadingAnchor, constant: Constants.padding),
-            hintLabel.trailingAnchor.constraint(equalTo: safeArea.trailingAnchor, constant: -Constants.padding)
+            hintLabel.trailingAnchor.constraint(equalTo: safeArea.trailingAnchor, constant: -Constants.padding),
+            
+            supportButton.topAnchor.constraint(equalTo: hintLabel.bottomAnchor, constant: 8),
+            supportButton.centerXAnchor.constraint(equalTo: view.centerXAnchor)
         ])
     }
 
@@ -311,5 +326,11 @@ private extension AuthViewController {
                 showValidationMessage("Invalid login or password")
             }
         }
+    }
+    
+    @objc func supportTapped() {
+        let feedbackVC = FeedbackViewController()
+        let nav = UINavigationController(rootViewController: feedbackVC)
+        present(nav, animated: true)
     }
 }

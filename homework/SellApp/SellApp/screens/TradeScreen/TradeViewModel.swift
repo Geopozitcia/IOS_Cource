@@ -85,4 +85,8 @@ final class TradeViewModel {
             delegate: delegate
         )
     }
+    
+    func openHeatmap() {
+        coordinator?.showHeatmap()
+    }
 }

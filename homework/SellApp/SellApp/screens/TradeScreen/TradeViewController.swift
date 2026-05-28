@@ -94,30 +94,28 @@ private extension TradeViewController {
     func setupNavigationBar() {
         let trashButton = UIBarButtonItem(
             image: UIImage(systemName: "trash"),
-            style: .plain,
-            target: self,
-            action: #selector(trashTapped)
+            style: .plain, target: self, action: #selector(trashTapped)
         )
         let shuffleButton = UIBarButtonItem(
             image: UIImage(systemName: "shuffle"),
-            style: .plain,
-            target: self,
-            action: #selector(shuffleTapped)
+            style: .plain, target: self, action: #selector(shuffleTapped)
         )
         let chartButton = UIBarButtonItem(
             image: UIImage(systemName: "chart.bar"),
-            style: .plain,
-            target: self,
-            action: #selector(chartTapped)
+            style: .plain, target: self, action: #selector(chartTapped)
         )
         let walletButton = UIBarButtonItem(
             image: UIImage(systemName: "wallet.pass"),
-            style: .plain,
-            target: self,
-            action: #selector(walletTapped)
+            style: .plain, target: self, action: #selector(walletTapped)
         )
+        // новая кнопка
+        let heatmapButton = UIBarButtonItem(
+            image: UIImage(systemName: "square.grid.3x3.fill"),
+            style: .plain, target: self, action: #selector(heatmapTapped)
+        )
+
         navigationItem.leftBarButtonItem = trashButton
-        navigationItem.rightBarButtonItems = [shuffleButton, chartButton, walletButton]
+        navigationItem.rightBarButtonItems = [shuffleButton, chartButton, walletButton, heatmapButton]
     }
 
     func setupSubviews() {
@@ -385,6 +383,10 @@ private extension TradeViewController {
 
     @objc func walletTapped() {
         viewModel.openWallet()
+    }
+    
+    @objc func heatmapTapped() {
+        viewModel.openHeatmap() 
     }
 }
 
