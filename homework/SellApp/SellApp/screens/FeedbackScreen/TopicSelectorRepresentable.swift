@@ -15,17 +15,10 @@ struct TopicSelectorRepresentable: UIViewRepresentable {
 
     func updateUIView(_ uiView: TopicSelectorView, context: Context) {
         uiView.setNeedsLayout()
-        uiView.layoutIfNeeded()
     }
 
     func makeCoordinator() -> Coordinator {
         Coordinator(selectedTopics: $selectedTopics)
-    }
-
-    func sizeThatFits(_ proposal: ProposedViewSize, uiView: TopicSelectorView, context: Context) -> CGSize? {
-        let width = proposal.width ?? UIScreen.main.bounds.width
-        let size = uiView.intrinsicContentSize
-        return CGSize(width: width, height: size.height)
     }
 
     final class Coordinator: NSObject, TopicSelectorViewDelegate {

@@ -15,7 +15,6 @@ struct FeedbackView: View {
 
     @StateObject private var viewModel = FeedbackViewModel()
     @FocusState private var focusedField: FeedbackField?
-
     @State private var showAgreement: Bool = false
 
     var body: some View {
@@ -42,6 +41,8 @@ struct FeedbackView: View {
         }
     }
 
+    // MARK: - Main content
+
     private var mainContent: some View {
         ScrollView {
             VStack(spacing: 20) {
@@ -55,6 +56,8 @@ struct FeedbackView: View {
             .padding(Constants.padding)
         }
     }
+
+    // MARK: - Name field
 
     private var nameField: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -70,13 +73,22 @@ struct FeedbackView: View {
                 .overlay(
                     RoundedRectangle(cornerRadius: Constants.cornerRadius)
                         .stroke(borderColor(for: viewModel.nameError, field: .name), lineWidth: 1.5)
+                        .animation(.easeInOut(duration: 0.2), value: viewModel.nameError)
+                        .animation(.easeInOut(duration: 0.2), value: focusedField)
                 )
 
             if let error = viewModel.nameError {
                 errorLabel(error)
+                    .transition(.asymmetric(
+                        insertion: .opacity.combined(with: .move(edge: .top)),
+                        removal: .opacity
+                    ))
             }
         }
+        .animation(.easeInOut(duration: 0.25), value: viewModel.nameError)
     }
+
+    // MARK: - Message field
 
     private var messageField: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -98,13 +110,22 @@ struct FeedbackView: View {
             .overlay(
                 RoundedRectangle(cornerRadius: Constants.cornerRadius)
                     .stroke(borderColor(for: viewModel.messageError, field: .message), lineWidth: 1.5)
+                    .animation(.easeInOut(duration: 0.2), value: viewModel.messageError)
+                    .animation(.easeInOut(duration: 0.2), value: focusedField)
             )
 
             if let error = viewModel.messageError {
                 errorLabel(error)
+                    .transition(.asymmetric(
+                        insertion: .opacity.combined(with: .move(edge: .top)),
+                        removal: .opacity
+                    ))
             }
         }
+        .animation(.easeInOut(duration: 0.25), value: viewModel.messageError)
     }
+
+    // MARK: - Character counter
 
     private var characterCounter: some View {
         HStack {
@@ -112,14 +133,20 @@ struct FeedbackView: View {
             let count = viewModel.messageText.count
             Text("\(count) / 150")
                 .font(.system(size: 12))
+                // Анимируем смену цвета при превышении лимита
                 .foregroundColor(count > 150 ? .red : .gray)
+                .animation(.easeInOut(duration: 0.2), value: count > 150)
         }
     }
+
+    // MARK: - Topic selector
 
     private var topicSelector: some View {
         TopicSelectorRepresentable(selectedTopics: $viewModel.selectedTopics)
             .frame(minHeight: 80)
     }
+
+    // MARK: - Checkbox
 
     private var checkboxRow: some View {
         HStack(alignment: .center, spacing: 12) {
@@ -127,6 +154,8 @@ struct FeedbackView: View {
                 .resizable()
                 .frame(width: 22, height: 22)
                 .foregroundColor(viewModel.isAgreed ? .blue : .gray)
+                // Анимируем смену иконки чекбокса
+                .animation(.easeInOut(duration: 0.2), value: viewModel.isAgreed)
                 .onTapGesture {
                     focusedField = nil
                     viewModel.isAgreed.toggle()
@@ -149,6 +178,8 @@ struct FeedbackView: View {
         }
     }
 
+    // MARK: - Send button
+
     private var sendButton: some View {
         Button(action: {
             focusedField = nil
@@ -159,11 +190,19 @@ struct FeedbackView: View {
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 16)
-                .background(viewModel.isSubmitEnabled ? Color.blue : Color.gray.opacity(0.5))
+                .background(
+                    // Анимируем смену цвета кнопки при блокировке/разблокировке
+                    viewModel.isSubmitEnabled ? Color.blue : Color.gray.opacity(0.5)
+                )
                 .cornerRadius(Constants.buttonCornerRadius)
+                .animation(.easeInOut(duration: 0.3), value: viewModel.isSubmitEnabled)
         }
         .disabled(!viewModel.isSubmitEnabled)
+        // Анимируем изменение opacity disabled-состояния
+        .animation(.easeInOut(duration: 0.3), value: viewModel.isSubmitEnabled)
     }
+
+    // MARK: - Success overlay
 
     private var successOverlay: some View {
         ZStack {
@@ -188,7 +227,10 @@ struct FeedbackView: View {
             .cornerRadius(20)
             .padding(.horizontal, 32)
         }
+        .transition(.opacity)
     }
+
+    // MARK: - Agreement overlay
 
     private var agreementOverlay: some View {
         ZStack {
@@ -231,6 +273,8 @@ struct FeedbackView: View {
         .padding(.bottom, 12)
     }
 
+    // MARK: - Helpers
+
     private func borderColor(for error: String?, field: FeedbackField) -> Color {
         if focusedField == field { return .blue }
         if error != nil { return .red }
@@ -246,8 +290,6 @@ struct FeedbackView: View {
                 .font(.system(size: 12))
                 .foregroundColor(.red)
         }
-        .transition(.opacity.combined(with: .move(edge: .top)))
-        .animation(.easeInOut(duration: 0.2), value: text)
     }
 
     private static let agreementText = """
