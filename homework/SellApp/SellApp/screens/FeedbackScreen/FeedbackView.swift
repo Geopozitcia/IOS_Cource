@@ -29,12 +29,10 @@ struct FeedbackView: View {
             }
         }
         .background(Constants.background)
-        .onChange(of: focusedField) { oldField, newField in // Пора обновлятся...
-            // Field waste focus
+        .onChange(of: focusedField) { oldField, newField in
             if let lost = oldField {
                 viewModel.didEndEditing(field: lost)
             }
-            // Field gets focus
             if let gained = newField {
                 viewModel.didBeginEditing(field: gained)
             }
@@ -50,6 +48,7 @@ struct FeedbackView: View {
                 nameField
                 messageField
                 characterCounter
+                topicSelector
                 checkboxRow
                 sendButton
             }
@@ -117,6 +116,11 @@ struct FeedbackView: View {
         }
     }
 
+    private var topicSelector: some View {
+        TopicSelectorRepresentable(selectedTopics: $viewModel.selectedTopics)
+            .frame(minHeight: 80)
+    }
+
     private var checkboxRow: some View {
         HStack(alignment: .center, spacing: 12) {
             Image(systemName: viewModel.isAgreed ? "checkmark.square.fill" : "square")
@@ -145,8 +149,6 @@ struct FeedbackView: View {
         }
     }
 
-    // MARK: - Send button
-
     private var sendButton: some View {
         Button(action: {
             focusedField = nil
@@ -162,8 +164,6 @@ struct FeedbackView: View {
         }
         .disabled(!viewModel.isSubmitEnabled)
     }
-
-    // MARK: - Success overlay
 
     private var successOverlay: some View {
         ZStack {
@@ -290,7 +290,6 @@ struct FeedbackView: View {
         """
 }
 
-
 private extension View {
     func placeholder<Content: View>(
         when shouldShow: Bool,
@@ -304,5 +303,5 @@ private extension View {
 }
 
 #Preview {
-    FeedbackView() 
+    FeedbackView()
 }

@@ -7,12 +7,12 @@ final class FeedbackViewModel: ObservableObject {
     @Published var authorName: String = ""
     @Published var messageText: String = ""
     @Published var isAgreed: Bool = false
+    @Published var selectedTopics: [FeedbackTopic] = []
     @Published private(set) var nameError: String? = nil
     @Published private(set) var messageError: String? = nil
     @Published private(set) var isSubmitEnabled: Bool = false
     @Published private(set) var isSubmitted: Bool = false
     @AppStorage("feedback.lastAuthorName") var savedAuthorName: String = ""
-
     private var cancellables = Set<AnyCancellable>()
 
     private enum Validation {
@@ -20,7 +20,6 @@ final class FeedbackViewModel: ObservableObject {
         static let maxNameLength = 30
         static let maxMessageLength = 150
     }
-
 
     init() {
         if !savedAuthorName.isEmpty {
@@ -55,23 +54,20 @@ final class FeedbackViewModel: ObservableObject {
         isSubmitted = false
         nameError = nil
         messageError = nil
+        selectedTopics = []
     }
 }
-
 
 enum FeedbackField: Hashable {
     case name
     case message
 }
 
-
 private extension FeedbackViewModel {
 
     func validateName(_ name: String) -> String? {
         let trimmed = name.trimmingCharacters(in: .whitespaces)
-        if trimmed.isEmpty {
-            return "Поле «Имя» не должно быть пустым"
-        }
+        if trimmed.isEmpty { return "Поле «Имя» не должно быть пустым" }
         if trimmed.count < Validation.minLength {
             return "Имя должно содержать не менее \(Validation.minLength) символов"
         }
@@ -83,9 +79,7 @@ private extension FeedbackViewModel {
 
     func validateMessage(_ message: String) -> String? {
         let trimmed = message.trimmingCharacters(in: .whitespaces)
-        if trimmed.isEmpty {
-            return "Текст обращения не должен быть пустым"
-        }
+        if trimmed.isEmpty { return "Текст обращения не должен быть пустым" }
         if trimmed.count < Validation.minLength {
             return "Текст обращения должен содержать не менее \(Validation.minLength) символов"
         }
