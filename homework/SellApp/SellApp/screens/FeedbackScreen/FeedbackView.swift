@@ -13,9 +13,9 @@ struct FeedbackView: View {
         static let buttonFontSize: CGFloat = 17
     }
 
-    @State private var authorName: String = ""
-    @State private var messageText: String = ""
-    @State private var isAgreed: Bool = false
+    @StateObject private var viewModel = FeedbackViewModel()
+    @FocusState private var focusedField: FeedbackField?
+
     @State private var showAgreement: Bool = false
 
     var body: some View {
@@ -24,16 +24,32 @@ struct FeedbackView: View {
             if showAgreement {
                 agreementOverlay
             }
+            if viewModel.isSubmitted {
+                successOverlay
+            }
         }
         .background(Constants.background)
+        .onChange(of: focusedField) { oldField, newField in // Пора обновлятся...
+            // Field waste focus
+            if let lost = oldField {
+                viewModel.didEndEditing(field: lost)
+            }
+            // Field gets focus
+            if let gained = newField {
+                viewModel.didBeginEditing(field: gained)
+            }
+        }
+        .onTapGesture {
+            focusedField = nil
+        }
     }
 
-// MARK: - Main form
     private var mainContent: some View {
         ScrollView {
             VStack(spacing: 20) {
                 nameField
                 messageField
+                characterCounter
                 checkboxRow
                 sendButton
             }
@@ -42,40 +58,75 @@ struct FeedbackView: View {
     }
 
     private var nameField: some View {
-        TextField("", text: $authorName)
-            .placeholder(when: authorName.isEmpty) {
-                Text("Ваше имя").foregroundColor(.gray)
+        VStack(alignment: .leading, spacing: 4) {
+            TextField("", text: $viewModel.authorName)
+                .placeholder(when: viewModel.authorName.isEmpty) {
+                    Text("Ваше имя").foregroundColor(.gray)
+                }
+                .foregroundColor(.white)
+                .padding(14)
+                .background(Constants.fieldBackground)
+                .cornerRadius(Constants.cornerRadius)
+                .focused($focusedField, equals: .name)
+                .overlay(
+                    RoundedRectangle(cornerRadius: Constants.cornerRadius)
+                        .stroke(borderColor(for: viewModel.nameError, field: .name), lineWidth: 1.5)
+                )
+
+            if let error = viewModel.nameError {
+                errorLabel(error)
             }
-            .foregroundColor(.white)
-            .padding(14)
-            .background(Constants.fieldBackground)
-            .cornerRadius(Constants.cornerRadius)
+        }
     }
 
     private var messageField: some View {
-        ZStack(alignment: .topLeading) {
-            if messageText.isEmpty {
-                Text("Текст обращения")
-                    .foregroundColor(.gray)
-                    .padding(14)
+        VStack(alignment: .leading, spacing: 4) {
+            ZStack(alignment: .topLeading) {
+                if viewModel.messageText.isEmpty {
+                    Text("Текст обращения")
+                        .foregroundColor(.gray)
+                        .padding(14)
+                }
+                TextEditor(text: $viewModel.messageText)
+                    .foregroundColor(.white)
+                    .frame(minHeight: Constants.messageMinHeight)
+                    .padding(10)
+                    .scrollContentBackground(.hidden)
+                    .focused($focusedField, equals: .message)
             }
-            TextEditor(text: $messageText)
-                .foregroundColor(.white)
-                .frame(minHeight: Constants.messageMinHeight)
-                .padding(10)
-                .scrollContentBackground(.hidden)
+            .background(Constants.fieldBackground)
+            .cornerRadius(Constants.cornerRadius)
+            .overlay(
+                RoundedRectangle(cornerRadius: Constants.cornerRadius)
+                    .stroke(borderColor(for: viewModel.messageError, field: .message), lineWidth: 1.5)
+            )
+
+            if let error = viewModel.messageError {
+                errorLabel(error)
+            }
         }
-        .background(Constants.fieldBackground)
-        .cornerRadius(Constants.cornerRadius)
+    }
+
+    private var characterCounter: some View {
+        HStack {
+            Spacer()
+            let count = viewModel.messageText.count
+            Text("\(count) / 150")
+                .font(.system(size: 12))
+                .foregroundColor(count > 150 ? .red : .gray)
+        }
     }
 
     private var checkboxRow: some View {
         HStack(alignment: .center, spacing: 12) {
-            Image(systemName: isAgreed ? "checkmark.square.fill" : "square")
+            Image(systemName: viewModel.isAgreed ? "checkmark.square.fill" : "square")
                 .resizable()
                 .frame(width: 22, height: 22)
-                .foregroundColor(isAgreed ? .blue : .gray)
-                .onTapGesture { isAgreed.toggle() }
+                .foregroundColor(viewModel.isAgreed ? .blue : .gray)
+                .onTapGesture {
+                    focusedField = nil
+                    viewModel.isAgreed.toggle()
+                }
 
             consentText
         }
@@ -86,7 +137,6 @@ struct FeedbackView: View {
             Text("Я согласен на ")
                 .foregroundColor(.white)
                 .font(.system(size: Constants.fontSize))
-
             Text("обработку данных")
                 .foregroundColor(.blue)
                 .underline()
@@ -95,28 +145,56 @@ struct FeedbackView: View {
         }
     }
 
+    // MARK: - Send button
+
     private var sendButton: some View {
         Button(action: {
-            // no logic for now
+            focusedField = nil
+            viewModel.submit()
         }) {
             Text("Отправить")
                 .font(.system(size: Constants.buttonFontSize, weight: .semibold))
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 16)
-                .background(isAgreed ? Color.blue : Color.gray.opacity(0.5))
+                .background(viewModel.isSubmitEnabled ? Color.blue : Color.gray.opacity(0.5))
                 .cornerRadius(Constants.buttonCornerRadius)
         }
-        .disabled(!isAgreed)
+        .disabled(!viewModel.isSubmitEnabled)
     }
 
-// MARK: - Agreement overlay
+    // MARK: - Success overlay
+
+    private var successOverlay: some View {
+        ZStack {
+            Color.black.opacity(0.7).ignoresSafeArea()
+            VStack(spacing: 20) {
+                Text("Обращение отправлено")
+                    .font(.title2.bold())
+                    .foregroundColor(.white)
+                Text("Ты только жалуешься и жалуешься")
+                    .font(.system(size: 15))
+                    .foregroundColor(.gray)
+                    .multilineTextAlignment(.center)
+                Button("Закрыть") { viewModel.reset() }
+                    .padding(.horizontal, 40)
+                    .padding(.vertical, 12)
+                    .background(Color.blue)
+                    .foregroundColor(.white)
+                    .cornerRadius(Constants.buttonCornerRadius)
+            }
+            .padding(Constants.padding)
+            .background(Color(red: 0.18, green: 0.18, blue: 0.18))
+            .cornerRadius(20)
+            .padding(.horizontal, 32)
+        }
+    }
+
     private var agreementOverlay: some View {
         ZStack {
             Color.black.opacity(0.6)
                 .ignoresSafeArea()
                 .onTapGesture { showAgreement = false }
-
             VStack(spacing: 0) {
                 agreementHeader
                 Divider().background(Color.gray.opacity(0.4))
@@ -151,6 +229,25 @@ struct FeedbackView: View {
         .padding(.horizontal, 20)
         .padding(.top, 20)
         .padding(.bottom, 12)
+    }
+
+    private func borderColor(for error: String?, field: FeedbackField) -> Color {
+        if focusedField == field { return .blue }
+        if error != nil { return .red }
+        return .clear
+    }
+
+    private func errorLabel(_ text: String) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: "exclamationmark.circle.fill")
+                .font(.system(size: 12))
+                .foregroundColor(.red)
+            Text(text)
+                .font(.system(size: 12))
+                .foregroundColor(.red)
+        }
+        .transition(.opacity.combined(with: .move(edge: .top)))
+        .animation(.easeInOut(duration: 0.2), value: text)
     }
 
     private static let agreementText = """
@@ -204,4 +301,8 @@ private extension View {
             self
         }
     }
+}
+
+#Preview {
+    FeedbackView() 
 }

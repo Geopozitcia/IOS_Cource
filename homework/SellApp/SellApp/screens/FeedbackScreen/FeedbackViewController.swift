@@ -1,6 +1,7 @@
 import UIKit
 import SwiftUI
 
+@available(iOS 17.0, *)
 final class FeedbackViewController: UIHostingController<FeedbackView> {
 
     init() {
