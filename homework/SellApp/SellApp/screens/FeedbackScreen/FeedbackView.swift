@@ -16,15 +16,30 @@ struct FeedbackView: View {
     @StateObject private var viewModel = FeedbackViewModel()
     @FocusState private var focusedField: FeedbackField?
     @State private var showAgreement: Bool = false
+    @State private var buttonScale: CGFloat = 1.0
 
     var body: some View {
         ZStack {
             mainContent
+
             if showAgreement {
                 agreementOverlay
             }
-            if viewModel.isSubmitted {
-                successOverlay
+
+            if viewModel.showCaptcha { // overlay
+                CaptchaOverlayView(
+                    onSuccess: {
+                        viewModel.onCaptchaSuccess()
+                    },
+                    onFailure: {
+                        viewModel.onCaptchaFailure()
+                    }
+                )
+                .transition(.asymmetric(
+                    insertion: .opacity.combined(with: .scale(scale: 0.95)),
+                    removal: .opacity.combined(with: .scale(scale: 0.95))
+                ))
+                .zIndex(10)
             }
         }
         .background(Constants.background)
@@ -39,6 +54,20 @@ struct FeedbackView: View {
         .onTapGesture {
             focusedField = nil
         }
+        .alert("Сообщение отправлено", isPresented: $viewModel.showSuccessAlert) {
+            Button("OK") {
+                viewModel.resetAfterSuccess()
+            }
+        } message: {
+            Text("Обращение принято")
+        }
+        // capcha failed
+        .alert("Проверка не пройдена", isPresented: $viewModel.showFailureAlert) {
+            Button("Попробовать ещё раз", role: .cancel) { }
+        } message: {
+            Text("Попробуйте снова.")
+        }
+        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: viewModel.showCaptcha)
     }
 
     // MARK: - Main content
@@ -125,15 +154,12 @@ struct FeedbackView: View {
         .animation(.easeInOut(duration: 0.25), value: viewModel.messageError)
     }
 
-    // MARK: - Character counter
-
     private var characterCounter: some View {
         HStack {
             Spacer()
             let count = viewModel.messageText.count
             Text("\(count) / 150")
                 .font(.system(size: 12))
-                // Анимируем смену цвета при превышении лимита
                 .foregroundColor(count > 150 ? .red : .gray)
                 .animation(.easeInOut(duration: 0.2), value: count > 150)
         }
@@ -154,7 +180,6 @@ struct FeedbackView: View {
                 .resizable()
                 .frame(width: 22, height: 22)
                 .foregroundColor(viewModel.isAgreed ? .blue : .gray)
-                // Анимируем смену иконки чекбокса
                 .animation(.easeInOut(duration: 0.2), value: viewModel.isAgreed)
                 .onTapGesture {
                     focusedField = nil
@@ -183,7 +208,16 @@ struct FeedbackView: View {
     private var sendButton: some View {
         Button(action: {
             focusedField = nil
-            viewModel.submit()
+            // Анимация нажатия
+            withAnimation(.spring(response: 0.2, dampingFraction: 0.5)) {
+                buttonScale = 0.95
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+                    buttonScale = 1.0
+                }
+            }
+            viewModel.requestSubmit()
         }) {
             Text("Отправить")
                 .font(.system(size: Constants.buttonFontSize, weight: .semibold))
@@ -191,43 +225,15 @@ struct FeedbackView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 16)
                 .background(
-                    // Анимируем смену цвета кнопки при блокировке/разблокировке
-                    viewModel.isSubmitEnabled ? Color.blue : Color.gray.opacity(0.5)
+                    viewModel.isSubmitEnabled
+                        ? Color.blue
+                        : Color.gray.opacity(0.4)
                 )
                 .cornerRadius(Constants.buttonCornerRadius)
-                .animation(.easeInOut(duration: 0.3), value: viewModel.isSubmitEnabled)
         }
         .disabled(!viewModel.isSubmitEnabled)
-        // Анимируем изменение opacity disabled-состояния
-        .animation(.easeInOut(duration: 0.3), value: viewModel.isSubmitEnabled)
-    }
-
-    // MARK: - Success overlay
-
-    private var successOverlay: some View {
-        ZStack {
-            Color.black.opacity(0.7).ignoresSafeArea()
-            VStack(spacing: 20) {
-                Text("Обращение отправлено")
-                    .font(.title2.bold())
-                    .foregroundColor(.white)
-                Text("Ты только жалуешься и жалуешься")
-                    .font(.system(size: 15))
-                    .foregroundColor(.gray)
-                    .multilineTextAlignment(.center)
-                Button("Закрыть") { viewModel.reset() }
-                    .padding(.horizontal, 40)
-                    .padding(.vertical, 12)
-                    .background(Color.blue)
-                    .foregroundColor(.white)
-                    .cornerRadius(Constants.buttonCornerRadius)
-            }
-            .padding(Constants.padding)
-            .background(Color(red: 0.18, green: 0.18, blue: 0.18))
-            .cornerRadius(20)
-            .padding(.horizontal, 32)
-        }
-        .transition(.opacity)
+        .scaleEffect(buttonScale)
+        .animation(.easeInOut(duration: 0.35), value: viewModel.isSubmitEnabled)
     }
 
     // MARK: - Agreement overlay
@@ -306,23 +312,23 @@ struct FeedbackView: View {
         When the mothers talk
         When the wind blows
         We can work it out
-        
+
         ----
-        
+
         It's not that you're not good enough
         It's just that we can make you better
         Given that you pay the price
         We can keep you young and tender
         Following the footsteps of a funeral pyre
         You were paid not to listen now your house is on fire
-        
+
         ----
-        
+
         Wake me up when things get started
         When everything starts to happen
-        
+
         ----
-        
+
         My features form with a change in the weather
         We can
         We can work it out

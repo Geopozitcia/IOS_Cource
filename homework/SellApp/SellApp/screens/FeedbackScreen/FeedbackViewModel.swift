@@ -12,6 +12,12 @@ final class FeedbackViewModel: ObservableObject {
     @Published private(set) var messageError: String? = nil
     @Published private(set) var isSubmitEnabled: Bool = false
     @Published private(set) var isSubmitted: Bool = false
+
+    // Captcha
+    @Published var showCaptcha: Bool = false
+    @Published var showSuccessAlert: Bool = false
+    @Published var showFailureAlert: Bool = false
+
     @AppStorage("feedback.lastAuthorName") var savedAuthorName: String = ""
     private var cancellables = Set<AnyCancellable>()
 
@@ -28,6 +34,8 @@ final class FeedbackViewModel: ObservableObject {
         setupSubmitPipeline()
     }
 
+    // MARK: - Public
+
     func didBeginEditing(field: FeedbackField) {
         switch field {
         case .name:    nameError = nil
@@ -42,10 +50,31 @@ final class FeedbackViewModel: ObservableObject {
         }
     }
 
-    func submit() {
+    func requestSubmit() {
         guard isSubmitEnabled else { return }
+        showCaptcha = true
+    }
+
+    func onCaptchaSuccess() {
+        showCaptcha = false
         savedAuthorName = authorName
         isSubmitted = true
+        showSuccessAlert = true
+    }
+
+    func onCaptchaFailure() {
+        showCaptcha = false
+        showFailureAlert = true
+    }
+
+    func resetAfterSuccess() {
+        authorName = savedAuthorName
+        messageText = ""
+        isAgreed = false
+        isSubmitted = false
+        nameError = nil
+        messageError = nil
+        selectedTopics = []
     }
 
     func reset() {
@@ -62,6 +91,8 @@ enum FeedbackField: Hashable {
     case name
     case message
 }
+
+// MARK: - Private
 
 private extension FeedbackViewModel {
 
@@ -91,10 +122,11 @@ private extension FeedbackViewModel {
 
     func setupSubmitPipeline() {
         Publishers.CombineLatest3($authorName, $messageText, $isAgreed)
-            .map { name, message, agreed in
-                self.validateName(name) == nil &&
-                self.validateMessage(message) == nil &&
-                agreed
+            .map { [weak self] name, message, agreed in
+                guard let self else { return false }
+                return self.validateName(name) == nil
+                    && self.validateMessage(message) == nil
+                    && agreed
             }
             .assign(to: &$isSubmitEnabled)
     }
