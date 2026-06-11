@@ -1,12 +1,11 @@
 import UIKit
+import SwiftUI
 
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     var window: UIWindow?
 
     private let sharedWallet = Wallet(currencies: ["USD", "EUR", "BTC", "ETH", "RUB"])
-
-    // храним координаторы чтобы они не уничтожились
     private var tradeCoordinator: TradeCoordinator?
     private var p2pCoordinator: P2PCoordinator?
 
@@ -57,6 +56,7 @@ private extension SceneDelegate {
             makeTradeTab(),
             makeCurrencyTab(),
             makeP2PTab(),
+            makeOptimizationTab(),
             makeSettingsTab()
         ]
         return tabBar
@@ -97,6 +97,17 @@ private extension SceneDelegate {
             selectedImage: UIImage(systemName: "arrow.left.arrow.right.circle.fill")
         )
         return nav
+    }
+
+    func makeOptimizationTab() -> UIViewController {
+        let hostingVC = UIHostingController(rootView: CurrencyPairsView())
+        hostingVC.title = "Pairs"
+        hostingVC.tabBarItem = UITabBarItem(
+            title: "Pairs",
+            image: UIImage(systemName: "chart.bar.xaxis"),
+            selectedImage: UIImage(systemName: "chart.bar.xaxis.ascending.badge.clock")
+        )
+        return hostingVC
     }
 
     func makeSettingsTab() -> UIViewController {
