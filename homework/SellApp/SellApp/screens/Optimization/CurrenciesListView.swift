@@ -160,7 +160,7 @@ final class CurrencyPairsGenerator: ObservableObject {
             volatility: volatility,
             rsi: rsi,
             valueAtRisk: valueAtRisk,
-            isRisky: volatility > 0.12
+            isRisky: volatility > 0.04
         )
     }
 
@@ -235,7 +235,12 @@ struct CurrencyPairsView: View {
                     ForEach(generator.pairs) { pair in
                         if let prepared = generator.preparedData[pair.id] {
                             /// .id(UUID()) removed
-                            PairRowView(pair: pair, prepared: prepared, highlightRisk: highlightRisk)
+                            PairRowView(
+                                pair: pair,
+                                prepared: prepared,
+                                highlightRisk: highlightRisk
+                            )
+                            .equatable()
                             /// isRisky  precomputing in prepared.
                         }
                     }
@@ -255,7 +260,8 @@ struct PairRowView: View, Equatable {
     static func == (lhs: Self, rhs: Self) -> Bool {
         lhs.pair.id == rhs.pair.id &&
         lhs.pair.value == rhs.pair.value &&
-        lhs.highlightRisk == rhs.highlightRisk
+        lhs.highlightRisk == rhs.highlightRisk &&
+        lhs.prepared == rhs.prepared
     }
 
     var body: some View {
