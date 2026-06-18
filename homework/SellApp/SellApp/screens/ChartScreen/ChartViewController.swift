@@ -4,6 +4,7 @@ final class ChartViewController: UIViewController {
 
     private enum Constants {
         static let padding: CGFloat = 16
+        static let linePadding: CGFloat = 128
         static let candleWidth: CGFloat = 50
         static let candleHeight: CGFloat = 160
         static let infoPanelHeight: CGFloat = 100
@@ -11,7 +12,13 @@ final class ChartViewController: UIViewController {
     }
 
     private var candles: [CandleModel] = []
-
+    private let lineChartView = LineChartView() // NEW ChartView для графика
+    
+    private let chartTypeControl = UISegmentedControl(items: [ // контроллер переключений
+        UIImage(systemName: "chart.bar.fill")!,
+        UIImage(systemName: "chart.line.uptrend.xyaxis")!
+    ])
+    
     private let scrollView = UIScrollView()
     private let candleStackView = UIStackView()
 
@@ -34,10 +41,15 @@ final class ChartViewController: UIViewController {
         setupConstraints()
     }
     
+    func setupChartTypeControl() {
+        chartTypeControl.addTarget(self, action: #selector(chartTypeChanged), for: .valueChanged)
+    }
+    
     func loadCandles() {
         candles = CandleModel.generateList(count: 30)
         candleStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
         populateCandles()
+        lineChartView.configure(with: candles.map { $0.close }) // мы вызываем массив candles, и с каждого элемента получаем цену закрытия
     }
 
     func resetCandles() {
@@ -68,10 +80,18 @@ private extension ChartViewController {
         setupScrollView()
         setupInfoPanel()
         setupRecommendationView()
+        
 
         view.addSubview(infoPanel)
         view.addSubview(recommendationView)
         view.addSubview(scrollView)
+        view.addSubview(chartTypeControl)
+        chartTypeControl.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(lineChartView)
+        lineChartView.translatesAutoresizingMaskIntoConstraints = false
+        lineChartView.isHidden = true
+        
+        setupChartTypeControl()
     }
 
     func setupScrollView() {
@@ -174,11 +194,20 @@ private extension ChartViewController {
             recommendationView.leadingAnchor.constraint(equalTo: safeArea.leadingAnchor, constant: Constants.padding),
             recommendationView.trailingAnchor.constraint(equalTo: safeArea.trailingAnchor, constant: -Constants.padding),
             recommendationView.heightAnchor.constraint(equalToConstant: Constants.recommendationHeight),
+            
+            chartTypeControl.topAnchor.constraint(equalTo: recommendationView.bottomAnchor, constant: Constants.padding),
+            chartTypeControl.leadingAnchor.constraint(equalTo: safeArea.leadingAnchor, constant: Constants.padding),
+            chartTypeControl.trailingAnchor.constraint(equalTo: safeArea.trailingAnchor, constant: -Constants.padding),
 
-            scrollView.topAnchor.constraint(equalTo: recommendationView.bottomAnchor, constant: Constants.padding),
+            scrollView.topAnchor.constraint(equalTo: chartTypeControl.bottomAnchor, constant: Constants.padding),
             scrollView.leadingAnchor.constraint(equalTo: safeArea.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: safeArea.trailingAnchor),
             scrollView.bottomAnchor.constraint(equalTo: safeArea.bottomAnchor),
+            
+            lineChartView.topAnchor.constraint(equalTo: chartTypeControl.bottomAnchor, constant: Constants.padding),
+            lineChartView.leadingAnchor.constraint(equalTo: safeArea.leadingAnchor, constant: Constants.padding),
+            lineChartView.trailingAnchor.constraint(equalTo: safeArea.trailingAnchor, constant: -Constants.padding),
+            lineChartView.bottomAnchor.constraint(equalTo: safeArea.bottomAnchor, constant: -Constants.linePadding),
 
             candleStackView.topAnchor.constraint(equalTo: scrollView.topAnchor, constant: Constants.padding),
             candleStackView.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor, constant: -Constants.padding),
@@ -238,4 +267,10 @@ private extension ChartViewController {
         recommendationPlaceholder.isHidden = true
         recommendationLabel.isHidden = false
     }
+    
+    @objc func chartTypeChanged() {
+        lineChartView.isHidden.toggle()
+        scrollView.isHidden.toggle()
+    }
+    
 }
