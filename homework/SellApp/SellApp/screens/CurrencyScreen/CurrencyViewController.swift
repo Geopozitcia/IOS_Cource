@@ -386,5 +386,8 @@ extension CurrencyViewController: UICollectionViewDelegate {
         let currency = viewModel.currencies[indexPath.item]
         guard !viewModel.isDisabled(currency) else { return }
         viewModel.selectCurrency(currency)
+        
+        let cell = collectionView.cellForItem(at: indexPath) as? CurrencyCell
+        cell?.animateSelection()
     }
 }

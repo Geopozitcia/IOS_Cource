@@ -10,7 +10,11 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         setupNavigationBarAppearance()
 
         window = UIWindow(windowScene: windowScene)
-        window?.rootViewController = makeRootController()
+        let splash = SplashScreenViewController()
+        splash.onFinished = { [weak self] in
+            self?.window?.rootViewController = self?.makeRootController()
+        }
+        window?.rootViewController = splash
         window?.makeKeyAndVisible()
     }
 }

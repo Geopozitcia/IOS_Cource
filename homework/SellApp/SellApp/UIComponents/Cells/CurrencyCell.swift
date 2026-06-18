@@ -46,6 +46,19 @@ final class CurrencyCell: UICollectionViewCell {
     required init?(coder: NSCoder) {
         super.init(coder: coder)
     }
+    
+    func animateSelection() {
+        UIView.animate(withDuration: 0.1, animations: {
+            self.transform = CGAffineTransform(scaleX: 0.9, y: 0.9)
+            self.backgroundColor = .systemGreen
+        }, completion: { _ in
+            UIView.animate(withDuration: 0.1) {
+                self.transform = .identity
+                self.backgroundColor = UIColor(red: 0.20, green: 0.20, blue: 0.20, alpha: 1)
+            }
+        })
+    }
+
 
     func configure(with currency: String, isDisabled: Bool, isSelected: Bool = false, isFavorite: Bool = false) {
         self.currency = currency
